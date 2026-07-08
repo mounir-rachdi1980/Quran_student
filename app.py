@@ -24,9 +24,25 @@ def init_db():
 
 init_db()
 
-# --- 2. إعدادات الصفحة ---
+# --- 2. إعدادات الصفحة والتنسيق ---
 st.set_page_config(page_title="نظام الرابطة", layout="wide", page_icon="🕌")
-st.markdown("<style>[data-testid='stSidebar'] { direction: rtl; text-align: right; }</style>", unsafe_allow_html=True)
+
+st.markdown("""
+    <style>
+    /* جعل الصفحة بالكامل من اليمين لليسار */
+    .stApp { direction: rtl !important; text-align: right !important; }
+    
+    /* تنسيق القائمة الجانبية */
+    [data-testid="stSidebar"] { direction: rtl !important; text-align: right !important; }
+    
+    /* تنسيق الفورم والحقول لتكون من اليمين */
+    div[data-testid="stForm"], div[data-testid="stVerticalBlock"] { direction: rtl !important; text-align: right !important; }
+    
+    /* محاذاة العناوين والنصوص */
+    h1, h2, h3, label, p { text-align: right !important; }
+    </style>
+""", unsafe_allow_html=True)
+
 st.markdown("<h1 style='text-align: center;'>🕌 نظام الفرع المحلي للرابطة الوطنية للقرآن الكريم بالمكناسي</h1>", unsafe_allow_html=True)
 
 # --- 3. قائمة التحكم ---
@@ -45,7 +61,7 @@ if choice == "تسجيل طالب جديد":
             last_name = st.text_input("اللقب")
             cin = st.text_input("رقم البطاقة")
         job = st.text_input("المهنة")
-        if st.form_submit_button("حفظ"):
+        if st.form_submit_button("حفظ بيانات الطالب"):
             conn = get_db_connection()
             c = conn.cursor()
             c.execute("INSERT INTO students (الاسم_الثلاثي, اللقب, تاريخ_الولادة, بطاقة_التعريف, المهنة) VALUES (?,?,?,?,?)", (name, last_name, str(dob), cin, job))
@@ -53,42 +69,42 @@ if choice == "تسجيل طالب جديد":
             c.execute("INSERT INTO grades (المعرف, الحفظ, الرواية, الدراية, الحضور) VALUES (?,0,0,0,0)", (s_id,))
             conn.commit()
             conn.close()
-            st.success("تم التسجيل!")
+            st.success("✅ تم تسجيل الطالب بنجاح!")
 
 elif choice == "رصد وتعديل الدرجات":
-    st.subheader("📊 رصد الدرجات")
+    st.subheader("📊 رصد وتعديل الدرجات")
     df = pd.read_sql_query("SELECT * FROM students", get_db_connection())
     if not df.empty:
         s_id = st.selectbox("اختر الطالب", df['المعرف'].tolist())
         grades = pd.read_sql_query(f"SELECT * FROM grades WHERE المعرف={s_id}", get_db_connection()).iloc[0]
-        h = st.number_input("الحفظ", value=float(grades['الحفظ']))
-        r = st.number_input("الرواية", value=float(grades['الرواية']))
-        d = st.number_input("الدراية", value=float(grades['الدراية']))
-        ho = st.number_input("الحضور", value=float(grades['الحضور']))
-        if st.button("حفظ التغييرات"):
+        h = st.number_input("الحفظ", value=float(grades['الحفظ']), min_value=0.0, max_value=20.0)
+        r = st.number_input("الرواية", value=float(grades['الرواية']), min_value=0.0, max_value=20.0)
+        d = st.number_input("الدراية", value=float(grades['الدراية']), min_value=0.0, max_value=20.0)
+        ho = st.number_input("الحضور", value=float(grades['الحضور']), min_value=0.0, max_value=20.0)
+        if st.button("حفظ التعديلات"):
             conn = get_db_connection()
             conn.execute("UPDATE grades SET الحفظ=?, الرواية=?, الدراية=?, الحضور=? WHERE المعرف=?", (h, r, d, ho, s_id))
             conn.commit()
             conn.close()
-            st.success("تم التحديث!")
+            st.success("✅ تم تحديث الدرجات!")
 
 elif choice == "تعديل ضوارب المواد":
-    st.subheader("⚙️ ضبط الضوارب")
+    st.subheader("⚙️ ضبط الضوارب (المعاملات)")
     conn = get_db_connection()
     w = pd.read_sql_query("SELECT * FROM settings WHERE id=1", conn).iloc[0]
     with st.form("weights_form"):
-        w1 = st.number_input("ضارب الحفظ", value=float(w['w_hifz']))
-        w2 = st.number_input("ضارب الرواية", value=float(w['w_riwaya']))
-        w3 = st.number_input("ضارب الدراية", value=float(w['w_diraya']))
-        w4 = st.number_input("ضارب الحضور", value=float(w['w_hodoor']))
-        if st.form_submit_button("حفظ"):
+        w1 = st.number_input("ضارب الحفظ", value=float(w['w_hifz']), min_value=0.1)
+        w2 = st.number_input("ضارب الرواية", value=float(w['w_riwaya']), min_value=0.1)
+        w3 = st.number_input("ضارب الدراية", value=float(w['w_diraya']), min_value=0.1)
+        w4 = st.number_input("ضارب الحضور", value=float(w['w_hodoor']), min_value=0.1)
+        if st.form_submit_button("حفظ الضوارب الجديدة"):
             conn.execute("UPDATE settings SET w_hifz=?, w_riwaya=?, w_diraya=?, w_hodoor=? WHERE id=1", (w1, w2, w3, w4))
             conn.commit()
-            st.success("تم تحديث الضوارب!")
+            st.success("✅ تم تحديث الضوارب بنجاح!")
     conn.close()
 
 elif choice == "استخراج بطاقة الأعداد":
-    st.subheader("🖨️ كشف الأعداد")
+    st.subheader("🖨️ استخراج كشف الأعداد")
     df = pd.read_sql_query("SELECT * FROM students", get_db_connection())
     if not df.empty:
         s_id = st.selectbox("اختر الطالب", df['المعرف'].tolist())
@@ -96,10 +112,10 @@ elif choice == "استخراج بطاقة الأعداد":
         g = pd.read_sql_query(f"SELECT * FROM grades WHERE المعرف={s_id}", get_db_connection()).iloc[0]
         w = pd.read_sql_query("SELECT * FROM settings WHERE id=1", get_db_connection()).iloc[0]
         avg = ((g['الحفظ']*w['w_hifz'])+(g['الرواية']*w['w_riwaya'])+(g['الدراية']*w['w_diraya'])+(g['الحضور']*w['w_hodoor'])) / (w['w_hifz']+w['w_riwaya']+w['w_diraya']+w['w_hodoor'])
-        st.write(f"المعدل الموزون للطالب {st_data['الاسم_الثلاثي']}: **{round(avg, 2)}**")
+        st.info(f"المعدل الموزون للطالب {st_data['الاسم_الثلاثي']} {st_data['اللقب']}: **{round(avg, 2)}**")
 
 elif choice == "حذف طالب":
-    st.subheader("🗑️ حذف طالب")
+    st.subheader("🗑️ حذف طالب من النظام")
     df = pd.read_sql_query("SELECT * FROM students", get_db_connection())
     if not df.empty:
         s_id = st.selectbox("اختر الطالب للحذف", df['المعرف'].tolist())
@@ -109,4 +125,5 @@ elif choice == "حذف طالب":
             conn.execute("DELETE FROM grades WHERE المعرف=?", (s_id,))
             conn.commit()
             conn.close()
+            st.error("⚠️ تم حذف البيانات بنجاح!")
             st.rerun()

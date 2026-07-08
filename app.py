@@ -1,77 +1,121 @@
 import streamlit as st
 import pandas as pd
+import sqlite3
 import os
 
-# --- إعدادات الواجهة ---
+# --- 1. إعداد قاعدة البيانات المحلية ---
+def get_db_connection():
+    conn = sqlite3.connect('quran_data.db')
+    return conn
+
+def init_db():
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS students 
+                 (المعرف INTEGER PRIMARY KEY AUTOINCREMENT, الاسم_الثلاثي TEXT, اللقب TEXT, تاريخ_الولادة TEXT, بطاقة_التعريف TEXT, المهنة TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS grades 
+                 (المعرف INTEGER PRIMARY KEY, الحفظ REAL, الرواية REAL, الدراية REAL, الحضور REAL)''')
+    conn.commit()
+    conn.close()
+
+init_db()
+
+# --- 2. إعدادات الصفحة ---
 st.set_page_config(page_title="نظام الفرع المحلي للرابطة الوطنية للقرآن الكريم بالمكناسي", layout="wide", page_icon="🕌")
 
-# --- دالة تحميل وحفظ البيانات ---
-def load_data(filename, columns):
-    if not os.path.exists(filename):
-        df = pd.DataFrame(columns=columns)
-        df.to_csv(filename, index=False, encoding='utf-8-sig')
-    return pd.read_csv(filename)
-
-def save_data(df, filename):
-    df.to_csv(filename, index=False, encoding='utf-8-sig')
-
-# --- تهيئة البيانات ---
-if 'students_db' not in st.session_state:
-    st.session_state.students_db = load_data('students.csv', ['المعرف', 'الاسم الثلاثي', 'اللقب', 'تاريخ الولادة', 'بطاقة التعريف', 'المهنة'])
-if 'grades_db' not in st.session_state:
-    st.session_state.grades_db = load_data('grades.csv', ['المعرف', 'الحفظ', 'الرواية', 'الدراية', 'الحضور'])
-if 'weights' not in st.session_state:
-    st.session_state.weights = {'الحفظ': 3.0, 'الرواية': 2.0, 'الدراية': 2.0, 'الحضور': 1.0}
-
-w = st.session_state.weights
-
-# --- التنسيق (CSS) ---
 st.markdown("""
     <style>
-    [data-testid="stSidebar"], .main { direction: rtl; text-align: right; }
-    th, td, .stMarkdown { text-align: right !important; }
+    [data-testid="stSidebar"], .main .block-container, div[data-testid="stForm"], .stDataFrame { direction: rtl !important; text-align: right !important; }
+    th, td, .stMarkdown, p, h1, h2, h3, h4, h5, h6, label { text-align: right !important; }
+    input, select, textarea { direction: rtl !important; text-align: right !important; }
+    div[data-testid="stHorizontalBlock"] { direction: rtl !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- واجهة التطبيق ---
-st.title("🕌 نظام الفرع المحلي للرابطة الوطنية للقرآن الكريم بالمكناسي")
+st.markdown("<h1 style='color: #1E4620; text-align: center;'>🕌 نظام الفرع المحلي للرابطة الوطنية للقرآن الكريم بالمكناسي</h1>", unsafe_allow_html=True)
 
-menu = ["تسجيل طالب جديد", "رصد وتعديل الدرجات", "استخراج بطاقة الأعداد"]
-choice = st.sidebar.selectbox("قائمة التحكم", menu)
+# --- 3. قائمة التحكم ---
+menu = ["تسجيل طالب جديد", "رصد وتعديل الدرجات", "استخراج بطاقة الأعداد", "حذف طالب"]
+choice = st.sidebar.selectbox("قائمة التحكم والتنقل", menu)
 
-# --- تسجيل طالب ---
+# --- 4. العمليات ---
 if choice == "تسجيل طالب جديد":
+    st.subheader("📝 استمارة بطاقة إرشادات طالب جديد")
     with st.form("student_form", clear_on_submit=True):
-        name = st.text_input("الاسم الثلاثي")
-        last_name = st.text_input("اللقب")
-        cin = st.text_input("رقم بطاقة التعريف")
-        dob = st.date_input("تاريخ الولادة")
-        job = st.text_input("المهنة")
-        if st.form_submit_button("حفظ الطالب"):
-            next_id = 20260001 + len(st.session_state.students_db)
-            new_s = pd.DataFrame([{'المعرف': next_id, 'الاسم الثلاثي': name, 'اللقب': last_name, 'تاريخ الولادة': str(dob), 'بطاقة التعريف': cin, 'المهنة': job}])
-            st.session_state.students_db = pd.concat([st.session_state.students_db, new_s], ignore_index=True)
-            save_data(st.session_state.students_db, 'students.csv')
-            
-            new_g = pd.DataFrame([{'المعرف': next_id, 'الحفظ': 0.0, 'الرواية': 0.0, 'الدراية': 0.0, 'الحضور': 0.0}])
-            st.session_state.grades_db = pd.concat([st.session_state.grades_db, new_g], ignore_index=True)
-            save_data(st.session_state.grades_db, 'grades.csv')
-            st.success(f"تم التسجيل! المعرف: {next_id}")
+        col1, col2 = st.columns(2)
+        with col1:
+            name = st.text_input("الاسم الثلاثي")
+            dob = st.date_input("تاريخ الولادة")
+        with col2:
+            last_name = st.text_input("اللقب (اسم العائلة)")
+            cin = st.text_input("رقم بطاقة التعريف / رقم القيد")
+        job = st.text_input("المهنة / المستوى الدراسي")
+        
+        if st.form_submit_button("حفظ بيانات الطالب"):
+            conn = get_db_connection()
+            c = conn.cursor()
+            c.execute("INSERT INTO students (الاسم_الثلاثي, اللقب, تاريخ_الولادة, بطاقة_التعريف, المهنة) VALUES (?,?,?,?,?)", 
+                      (name, last_name, str(dob), cin, job))
+            student_id = c.lastrowid
+            c.execute("INSERT INTO grades (المعرف, الحفظ, الرواية, الدراية, الحضور) VALUES (?,0,0,0,0)", (student_id,))
+            conn.commit()
+            conn.close()
+            st.success(f"🎉 تم تسجيل الطالب! المعرف الخاص به هو: {student_id}")
 
-    st.dataframe(st.session_state.students_db)
+    st.write("### 👥 قائمة الطلاب المسجلين:")
+    df = pd.read_sql_query("SELECT * FROM students", get_db_connection())
+    st.dataframe(df, use_container_width=True)
 
-# --- رصد الدرجات ---
 elif choice == "رصد وتعديل الدرجات":
-    if not st.session_state.students_db.empty:
-        s_id = st.selectbox("اختر الطالب", st.session_state.students_db['المعرف'])
-        g_row = st.session_state.grades_db[st.session_state.grades_db['المعرف'] == s_id].iloc[0]
+    st.subheader("📊 دفتر رصد أعداد وتقييمات الطلاب")
+    df = pd.read_sql_query("SELECT * FROM students", get_db_connection())
+    if df.empty:
+        st.warning("⚠️ لا يوجد طلاب مسجلون حالياً.")
+    else:
+        s_id = st.selectbox("اختر المعرف للطالب", df['المعرف'].tolist())
+        grades = pd.read_sql_query(f"SELECT * FROM grades WHERE المعرف={s_id}", get_db_connection()).iloc[0]
         
-        h = st.number_input("الحفظ", value=float(g_row['الحفظ']))
-        r = st.number_input("الرواية", value=float(g_row['الرواية']))
-        d = st.number_input("الدراية", value=float(g_row['الدراية']))
-        a = st.number_input("الحضور", value=float(g_row['الحضور']))
+        col1, col2, col3, col4 = st.columns(4)
+        with col1: hifz = st.number_input("الحفظ", value=float(grades['الحفظ']), min_value=0.0, max_value=20.0)
+        with col2: riwaya = st.number_input("الرواية", value=float(grades['الرواية']), min_value=0.0, max_value=20.0)
+        with col3: diraya = st.number_input("الدراية", value=float(grades['الدراية']), min_value=0.0, max_value=20.0)
+        with col4: hodoor = st.number_input("الحضور", value=float(grades['الحضور']), min_value=0.0, max_value=20.0)
         
-        if st.button("حفظ الدرجات"):
+        if st.button("تحديث وحفظ الدرجات"):
+            conn = get_db_connection()
+            conn.execute("UPDATE grades SET الحفظ=?, الرواية=?, الدراية=?, الحضور=? WHERE المعرف=?", (hifz, riwaya, diraya, hodoor, s_id))
+            conn.commit()
+            conn.close()
+            st.success("✅ تم تحديث الدرجات بنجاح!")
+
+elif choice == "استخراج بطاقة الأعداد":
+    st.subheader("🖨️ استخراج وطباعة كشف الأعداد")
+    df = pd.read_sql_query("SELECT * FROM students", get_db_connection())
+    if not df.empty:
+        s_id = st.selectbox("اختر الطالب لاستخراج كشفه", df['المعرف'].tolist())
+        student = df[df['المعرف'] == s_id].iloc[0]
+        grades = pd.read_sql_query(f"SELECT * FROM grades WHERE المعرف={s_id}", get_db_connection()).iloc[0]
+        
+        st.info(f"عرض بطاقة الطالب: {student['الاسم_الثلاثي']} {student['اللقب']}")
+        st.write(f"المعدل الحسابي البسيط: {round((grades['الحفظ']+grades['الرواية']+grades['الدراية']+grades['الحضور'])/4, 2)} / 20")
+    else:
+        st.warning("لا توجد بيانات.")
+
+elif choice == "حذف طالب":
+    st.subheader("🗑️ حذف طالب من النظام")
+    df = pd.read_sql_query("SELECT * FROM students", get_db_connection())
+    if not df.empty:
+        s_id = st.selectbox("اختر الطالب للحذف:", df['المعرف'].tolist())
+        if st.button("حذف نهائي"):
+            conn = get_db_connection()
+            conn.execute("DELETE FROM students WHERE المعرف=?", (s_id,))
+            conn.execute("DELETE FROM grades WHERE المعرف=?", (s_id,))
+            conn.commit()
+            conn.close()
+            st.error("⚠️ تم حذف بيانات الطالب نهائياً!")
+            st.rerun()
+    else:
+        st.info("لا يوجد طلاب للحذف.")tton("حفظ الدرجات"):
             st.session_state.grades_db.loc[st.session_state.grades_db['المعرف'] == s_id, ['الحفظ', 'الرواية', 'الدراية', 'الحضور']] = [h, r, d, a]
             save_data(st.session_state.grades_db, 'grades.csv')
             st.success("تم تحديث الدرجات!")

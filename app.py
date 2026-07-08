@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
-import os  # استيراد مكتبة للتحقق من وجود الملفات
 
 # --- 1. إعداد قاعدة البيانات ---
 def get_db_connection():
@@ -30,12 +29,7 @@ init_db()
 st.set_page_config(page_title="نظام الرابطة", layout="wide", page_icon="🕌")
 st.markdown("""<style>.stApp { direction: rtl !important; text-align: right !important; } [data-testid="stSidebar"] { direction: rtl !important; }</style>""", unsafe_allow_html=True)
 
-# عرض الشعار مع التحقق من وجوده لتجنب الخطأ
-if os.path.exists("logo.jpg"):
-    st.image("logo.jpg", width=150)
-else:
-    st.warning("⚠️ ملاحظة: ملف الشعار (logo.jpg) غير موجود في المجلد.")
-
+# العنوان الرئيسي (بدون استدعاء صورة لتجنب الخطأ)
 st.markdown("""
     <h1 style="color: #1A5276; font-family: 'Arial', sans-serif; text-align: center; margin-bottom: 30px;">
         إدارة الفرع المحلي للرابطة الوطنية للقرآن الكريم بالمكناسي
@@ -52,7 +46,7 @@ if choice == "تسجيل طالب جديد":
     with st.form("student_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
         name = col1.text_input("الاسم الثلاثي")
-        last_name = col2.text_input("القب")
+        last_name = col2.text_input("اللقب")
         dob = col1.date_input("تاريخ الولادة")
         cin = col2.text_input("رقم بطاقة التعريف")
         job = col1.text_input("المهنة")

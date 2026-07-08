@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
-import os  # استيراد مكتبة للتعامل مع ملفات النظام
 
 # --- 1. إعداد قاعدة البيانات ---
 def get_db_connection():
@@ -30,14 +29,7 @@ init_db()
 st.set_page_config(page_title="نظام الرابطة", layout="wide", page_icon="🕌")
 st.markdown("""<style>.stApp { direction: rtl !important; text-align: right !important; } [data-testid="stSidebar"] { direction: rtl !important; }</style>""", unsafe_allow_html=True)
 
-# إضافة الصورة الجديدة مع التحقق من وجود الملف
-# تأكد أن اسم ملف الصورة في المجلد هو logoo.jpg
-if os.path.exists("logoo.jpg"):
-    st.image("logoo.jpg", width=150)
-else:
-    st.warning("⚠️ ملاحظة: لم يتم العثور على صورة الشعار (logoo.jpg) في مجلد المشروع.")
-
-# العنوان الرئيسي
+# العنوان الرئيسي (تم حذف استدعاء الصورة لتجنب الخطأ)
 st.markdown("""
     <h1 style="color: #1A5276; font-family: 'Arial', sans-serif; text-align: center; margin-bottom: 30px;">
         إدارة الفرع المحلي للرابطة الوطنية للقرآن الكريم بالمكناسي

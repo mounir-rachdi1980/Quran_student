@@ -29,7 +29,14 @@ init_db()
 # --- 2. التنسيق ---
 st.set_page_config(page_title="نظام الرابطة", layout="wide", page_icon="🕌")
 st.markdown("""<style>.stApp { direction: rtl !important; text-align: right !important; } [data-testid="stSidebar"] { direction: rtl !important; }</style>""", unsafe_allow_html=True)
-st.markdown("<h1 style='text-align: center;'>🕌 نظام الفرع المحلي للرابطة الوطنية للقرآن الكريم بالمكناسي</h1>", unsafe_allow_html=True)
+
+# إضافة الشعار والعنوان المنسق
+st.image("logo.jpg", width=150)
+st.markdown("""
+    <h1 style="color: #1A5276; font-family: 'Arial', sans-serif; text-align: center; margin-bottom: 30px;">
+        إدارة الفرع المحلي للرابطة الوطنية للقرآن الكريم بالمكناسي
+    </h1>
+    """, unsafe_allow_html=True)
 
 # --- 3. القائمة ---
 menu = ["تسجيل طالب جديد", "المتابعة البيداغوجية", "تغيير الضوارب", "حذف طالب"]

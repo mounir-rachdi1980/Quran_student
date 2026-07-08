@@ -96,11 +96,21 @@ elif choice == "استخراج بطاقة الأعداد":
         student = df[df['المعرف'] == s_id].iloc[0]
         grades = pd.read_sql_query(f"SELECT * FROM grades WHERE المعرف={s_id}", get_db_connection()).iloc[0]
         
+        # تعريف الضوارب (المعاملات)
+        w_hifz, w_riwaya, w_diraya, w_hodoor = 3, 2, 2, 1
+        
+        # حساب المعدل الموزون
+        total_weight = w_hifz + w_riwaya + w_diraya + w_hodoor
+        weighted_sum = (grades['الحفظ'] * w_hifz) + (grades['الرواية'] * w_riwaya) + \
+                       (grades['الدراية'] * w_diraya) + (grades['الحضور'] * w_hodoor)
+        average = weighted_sum / total_weight
+        
         st.info(f"عرض بطاقة الطالب: {student['الاسم_الثلاثي']} {student['اللقب']}")
-        st.write(f"المعدل الحسابي البسيط: {round((grades['الحفظ']+grades['الرواية']+grades['الدراية']+grades['الحضور'])/4, 2)} / 20")
+        st.write(f"المعدل الموزون: {round(average, 2)} / 20")
     else:
         st.warning("لا توجد بيانات.")
 
+# --- اصلاح جزء الحذف في نهاية الكود ---
 elif choice == "حذف طالب":
     st.subheader("🗑️ حذف طالب من النظام")
     df = pd.read_sql_query("SELECT * FROM students", get_db_connection())
@@ -115,4 +125,4 @@ elif choice == "حذف طالب":
             st.error("⚠️ تم حذف بيانات الطالب نهائياً!")
             st.rerun()
     else:
-        st.info("لا يوجد طلاب للحذف.")  # لاحظ أن هذه المسافة مطلوبة
+        st.info("لا يوجد طلاب للحذف.")

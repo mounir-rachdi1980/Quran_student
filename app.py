@@ -115,7 +115,5 @@ elif choice == "حذف طالب":
             st.error("⚠️ تم حذف بيانات الطالب نهائياً!")
             st.rerun()
     else:
-        st.info("لا يوجد طلاب للحذف.")tton("حفظ الدرجات"):
-            st.session_state.grades_db.loc[st.session_state.grades_db['المعرف'] == s_id, ['الحفظ', 'الرواية', 'الدراية', 'الحضور']] = [h, r, d, a]
-            save_data(st.session_state.grades_db, 'grades.csv')
-            st.success("تم تحديث الدرجات!")
+st.info("لا يوجد طلاب للحذف.")
+if st.button("حفظ الدرجات"):

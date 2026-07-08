@@ -17,6 +17,10 @@ def init_db():
                  (المعرف INTEGER PRIMARY KEY, u1 REAL, u2 REAL, u3 REAL, u4 REAL)''')
     c.execute('''CREATE TABLE IF NOT EXISTS settings 
                  (id INTEGER PRIMARY KEY, w_hifz REAL, w_riwaya REAL, w_diraya REAL, w_hodoor REAL)''')
+    # تهيئة الضوارب إذا كانت فارغة
+    c.execute("SELECT count(*) FROM settings")
+    if c.fetchone()[0] == 0:
+        c.execute("INSERT INTO settings (id, w_hifz, w_riwaya, w_diraya, w_hodoor) VALUES (1, 3.0, 2.0, 2.0, 1.0)")
     conn.commit()
     conn.close()
 
@@ -41,23 +45,28 @@ if choice == "الرئيسية (تسجيل الطلاب)":
         dob = col1.date_input("تاريخ الولادة")
         cin = col2.text_input("رقم بطاقة التعريف")
         job = st.text_input("المهنة")
-        # العنوان خارج الاستمارة
-        st.markdown("### 🎓 المرحلة الدراسية للطالب")
+        submitted = st.form_submit_button("حفظ الطالب")
+
+    # --- قسم المرحلة الدراسية (خارج الاستمارة) ---
+    st.markdown("---")
+    st.markdown("### 🎓 المرحلة الدراسية للطالب")
+    with st.container():
+        st.markdown("""<style>[data-testid="stVerticalBlock"]{border: 1px solid #ddd; padding: 15px; border-radius: 10px;}</style>""", unsafe_allow_html=True)
         stage = st.selectbox("اختر المرحلة", [
             "المرحلة الأولى: قالون (4 وحدات)", 
             "المرحلة الثانية: نافع وحفص (3 وحدات)", 
             "المرحلة الثالثة: سما وقراءات (4 وحدات)"
-        ], label_visibility="collapsed")
-        
-        if st.form_submit_button("حفظ الطالب"):
-            conn = get_db_connection()
-            c = conn.cursor()
-            c.execute("INSERT INTO students (الاسم_الثلاثي, اللقب, تاريخ_الولادة, بطاقة_التعريف, المهنة, المرحلة, الوحدة) VALUES (?,?,?,?,?,?,?)", 
-                      (name, last_name, str(dob), cin, job, stage, 1))
-            c.execute("INSERT INTO grades (المعرف, u1, u2, u3, u4) VALUES (?,0,0,0,0)", (c.lastrowid,))
-            conn.commit()
-            conn.close()
-            st.success("✅ تم تسجيل الطالب بنجاح!")
+        ])
+    
+    if submitted:
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute("INSERT INTO students (الاسم_الثلاثي, اللقب, تاريخ_الولادة, بطاقة_التعريف, المهنة, المرحلة, الوحدة) VALUES (?,?,?,?,?,?,?)", 
+                  (name, last_name, str(dob), cin, job, stage, 1))
+        c.execute("INSERT INTO grades (المعرف, u1, u2, u3, u4) VALUES (?,0,0,0,0)", (c.lastrowid,))
+        conn.commit()
+        conn.close()
+        st.success("✅ تم تسجيل الطالب بالمرحلة المختارة!")
 
 elif choice == "المتابعة البيداغوجية":
     st.subheader("📊 رصد الدرجات والارتقاء")
@@ -65,14 +74,16 @@ elif choice == "المتابعة البيداغوجية":
     if not df.empty:
         s_id = st.selectbox("اختر الطالب", df['المعرف'].tolist())
         row = df[df['المعرف'] == s_id].iloc[0]
-        st.write(f"الطالب: {row['الاسم_الثلاثي']} | المرحلة: {row['المرحلة']} | الوحدة: {row['الوحدة']}")
+        st.write(f"الطالب: {row['الاسم_الثلاثي']} | المرحلة: {row['المرحلة']} | الوحدة الحالية: {row['الوحدة']}")
         
-        new_grade = st.number_input("أدخل درجة الوحدة الحالية", 0.0, 20.0)
+        curr_unit = row['الوحدة']
+        new_grade = st.number_input(f"أدخل درجة الوحدة {curr_unit}", 0.0, 20.0)
+        
         if st.button("تحديث الدرجة والارتقاء"):
             conn = get_db_connection()
-            conn.execute(f"UPDATE grades SET u{row['الوحدة']}=? WHERE المعرف=?", (new_grade, s_id))
+            conn.execute(f"UPDATE grades SET u{curr_unit}=? WHERE المعرف=?", (new_grade, s_id))
             if new_grade >= 10:
-                conn.execute("UPDATE students SET الوحدة=? WHERE المعرف=?", (row['الوحدة'] + 1, s_id))
+                conn.execute("UPDATE students SET الوحدة=? WHERE المعرف=?", (curr_unit + 1, s_id))
                 st.success("🎉 تم الارتقاء للوحدة التالية!")
             conn.commit()
             conn.close()
@@ -82,18 +93,28 @@ elif choice == "الإعدادات والإدارة":
     tab1, tab2 = st.tabs(["تعديل الضوارب", "حذف طالب"])
     
     with tab1:
-        st.write("تعديل ضوارب المواد (للمعدلات)")
-        # (يمكنك إضافة منطق حفظ الضوارب هنا)
-        st.info("قسم تعديل الضوارب مفعل.")
+        conn = get_db_connection()
+        w = pd.read_sql_query("SELECT * FROM settings WHERE id=1", conn).iloc[0]
+        with st.form("weights_form"):
+            w1 = st.number_input("ضارب الحفظ", value=float(w['w_hifz']))
+            w2 = st.number_input("ضارب الرواية", value=float(w['w_riwaya']))
+            w3 = st.number_input("ضارب الدراية", value=float(w['w_diraya']))
+            w4 = st.number_input("ضارب الحضور", value=float(w['w_hodoor']))
+            if st.form_submit_button("حفظ الضوارب"):
+                conn.execute("UPDATE settings SET w_hifz=?, w_riwaya=?, w_diraya=?, w_hodoor=? WHERE id=1", (w1, w2, w3, w4))
+                conn.commit()
+                st.success("✅ تم التحديث!")
+        conn.close()
         
     with tab2:
         df = pd.read_sql_query("SELECT * FROM students", get_db_connection())
-        del_id = st.selectbox("اختر الطالب للحذف", df['المعرف'].tolist())
-        if st.button("حذف نهائي للطالب"):
-            conn = get_db_connection()
-            conn.execute("DELETE FROM students WHERE المعرف=?", (del_id,))
-            conn.execute("DELETE FROM grades WHERE المعرف=?", (del_id,))
-            conn.commit()
-            conn.close()
-            st.error("⚠️ تم حذف الطالب نهائياً!")
-            st.rerun()
+        if not df.empty:
+            del_id = st.selectbox("اختر الطالب للحذف", df['المعرف'].tolist())
+            if st.button("حذف نهائي للطالب"):
+                conn = get_db_connection()
+                conn.execute("DELETE FROM students WHERE المعرف=?", (del_id,))
+                conn.execute("DELETE FROM grades WHERE المعرف=?", (del_id,))
+                conn.commit()
+                conn.close()
+                st.error("⚠️ تم الحذف!")
+                st.rerun()

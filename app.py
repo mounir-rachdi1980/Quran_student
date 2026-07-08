@@ -31,11 +31,11 @@ st.set_page_config(page_title="نظام الرابطة", layout="wide", page_ico
 st.markdown("""<style>.stApp { direction: rtl !important; text-align: right !important; } [data-testid="stSidebar"] { direction: rtl !important; }</style>""", unsafe_allow_html=True)
 
 # إضافة الصورة الجديدة مع التحقق من وجود الملف
-# تأكد أن اسم ملف الصورة في المجلد هو logo.jpg
-if os.path.exists("logo.jpg"):
-    st.image("logo.jpg", width=150)
+# تأكد أن اسم ملف الصورة في المجلد هو logoo.jpg
+if os.path.exists("logoo.jpg"):
+    st.image("logoo.jpg", width=150)
 else:
-    st.warning("⚠️ ملاحظة: لم يتم العثور على صورة الشعار (logo.jpg) في مجلد المشروع.")
+    st.warning("⚠️ ملاحظة: لم يتم العثور على صورة الشعار (logoo.jpg) في مجلد المشروع.")
 
 # العنوان الرئيسي
 st.markdown("""

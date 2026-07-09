@@ -168,4 +168,4 @@ elif choice == "حذف طالب":
             conn.commit()
             conn.close()
             st.error("⚠️ تم حذف الطالب وجميع بياناته بنجاح!")
-            st.rerun()         st.rerun()     
+            st.rerun()         

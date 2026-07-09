@@ -70,21 +70,26 @@ if choice == "تسجيل طالب جديد":
         st.success(f"✅ تم تسجيل الطالب بنجاح! (المعرف ID: {c.lastrowid})")
 
 elif choice == "المتابعة البيداغوجية":
-    st.subheader("📊 رصد الدرجات والارتقاء")
+    st.subheader("📊 رصد الدرجات الأربع")
     df = pd.read_sql_query("SELECT * FROM students", get_db_connection())
     if not df.empty:
         s_id = st.selectbox("اختر الطالب (عن طريق المعرف ID)", df['المعرف'].tolist())
         row = df[df['المعرف'] == s_id].iloc[0]
-        st.write(f"الطالب: {row['الاسم_الثلاثي']} {row['اللقب']} | المستوى: {row['المستوى_التعليمي']} | الوحدة: {row['الوحدة']}")
-        new_grade = st.number_input("أدخل درجة الوحدة الحالية", 0.0, 20.0)
-        if st.button("تحديث الدرجة والارتقاء"):
-            conn = get_db_connection()
-            conn.execute(f"UPDATE grades SET u{row['الوحدة']}=? WHERE المعرف=?", (new_grade, s_id))
-            if new_grade >= 10:
-                conn.execute("UPDATE students SET الوحدة=? WHERE المعرف=?", (row['الوحدة'] + 1, s_id))
-                st.success("🎉 تم الارتقاء للوحدة التالية!")
-            conn.commit()
-            conn.close()
+        st.write(f"الطالب: {row['الاسم_الثلاثي']} {row['اللقب']} | المستوى: {row['المستوى_التعليمي']}")
+        
+        with st.form("grades_form"):
+            col1, col2 = st.columns(2)
+            hifz = col1.number_input("درجة الحفظ", 0.0, 20.0, value=0.0)
+            riwaya = col2.number_input("درجة الرواية", 0.0, 20.0, value=0.0)
+            diraya = col1.number_input("درجة الدراية", 0.0, 20.0, value=0.0)
+            hodoor = col2.number_input("درجة المواظبة", 0.0, 20.0, value=0.0)
+            
+            if st.form_submit_button("حفظ الدرجات"):
+                conn = get_db_connection()
+                conn.execute("UPDATE grades SET u1=?, u2=?, u3=?, u4=? WHERE المعرف=?", (hifz, riwaya, diraya, hodoor, s_id))
+                conn.commit()
+                conn.close()
+                st.success("✅ تم حفظ الدرجات الأربع بنجاح!")
 
 elif choice == "استخراج بطاقة الأعداد":
     st.subheader("🖨️ استخراج وطباعة كشف الأعداد السنوي")
@@ -101,7 +106,6 @@ elif choice == "استخراج بطاقة الأعداد":
         s_info = students_df[students_df['المعرف'] == s_id].iloc[0]
         g_info = grades_df[grades_df['المعرف'] == s_id].iloc[0]
         
-        # الحساب بناءً على المواد (u1=الحفظ، u2=الرواية، u3=الدراية، u4=المواظبة)
         total_points = (g_info['u1'] * settings['w_hifz']) + \
                        (g_info['u2'] * settings['w_riwaya']) + \
                        (g_info['u3'] * settings['w_diraya']) + \
@@ -168,4 +172,4 @@ elif choice == "حذف طالب":
             conn.commit()
             conn.close()
             st.error("⚠️ تم حذف الطالب وجميع بياناته بنجاح!")
-            st.rerun()         
+            st.rerun()                 

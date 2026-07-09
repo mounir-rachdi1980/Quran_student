@@ -29,7 +29,6 @@ init_db()
 st.set_page_config(page_title="نظام الرابطة", layout="wide", page_icon="🕌")
 st.markdown("""<style>.stApp { direction: rtl !important; text-align: right !important; } [data-testid="stSidebar"] { direction: rtl !important; }</style>""", unsafe_allow_html=True)
 
-# العنوان الرئيسي (تم حذف استدعاء الصورة لتجنب الخطأ)
 st.markdown("""
     <h1 style="color: #1A5276; font-family: 'Arial', sans-serif; text-align: center; margin-bottom: 30px;">
         إدارة الفرع المحلي للرابطة الوطنية للقرآن الكريم بالمكناسي
@@ -37,7 +36,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- 3. القائمة ---
-menu = ["تسجيل طالب جديد", "المتابعة البيداغوجية", "تغيير الضوارب", "حذف طالب"]
+menu = ["تسجيل طالب جديد", "المتابعة البيداغوجية", "استخراج بطاقة الأعداد", "تغيير الضوارب", "حذف طالب"]
 choice = st.sidebar.selectbox("قائمة التحكم", menu)
 
 # --- 4. العمليات ---
@@ -87,6 +86,57 @@ elif choice == "المتابعة البيداغوجية":
             conn.commit()
             conn.close()
 
+elif choice == "استخراج بطاقة الأعداد":
+    st.subheader("🖨️ استخراج وطباعة كشف الأعداد السنوي")
+    conn = get_db_connection()
+    students_df = pd.read_sql_query("SELECT * FROM students", conn)
+    grades_df = pd.read_sql_query("SELECT * FROM grades", conn)
+    settings = pd.read_sql_query("SELECT * FROM settings WHERE id=1", conn).iloc[0]
+    conn.close()
+
+    if students_df.empty:
+        st.warning("⚠️ لا توجد بيانات طلاب متوفرة لاستخراج الكشوفات.")
+    else:
+        s_id = st.selectbox("اختر معرف الطالب لإنتاج كشفه", students_df['المعرف'])
+        s_info = students_df[students_df['المعرف'] == s_id].iloc[0]
+        g_info = grades_df[grades_df['المعرف'] == s_id].iloc[0]
+        
+        total_points = (g_info['u1'] * settings['w_hifz']) + (g_info['u2'] * settings['w_riwaya']) + \
+                       (g_info['u3'] * settings['w_diraya']) + (g_info['u4'] * settings['w_hodoor'])
+        sum_weights = settings['w_hifz'] + settings['w_riwaya'] + settings['w_diraya'] + settings['w_hodoor']
+        final_score = round(total_points / sum_weights, 2)
+        
+        result = "ناجح ومبارك له 🎉" if final_score >= 10.0 else "راسب وله فرصة تدارك 📑"
+        result_color = "#1E4620" if final_score >= 10.0 else "#8B0000"
+        
+        st.markdown(f"""
+        <div style="border: 3px double #1E4620; padding: 25px; border-radius: 10px; background-color: #FAFAFA; direction: rtl; font-family: 'Arial', sans-serif; text-align: right;">
+            <div style="text-align: center;">
+                <h2 style="margin: 0; color: #1E4620;">بطاقة تقييم وكشف أعداد طالب سنوي</h2>
+                <h4 style="color: gray; margin-top: 5px;">الفرع المحلي للرابطة الوطنية للقرآن الكريم بالمكناسي</h4>
+                <hr style="border-top: 2px solid #1E4620; margin: 15px 0;">
+            </div>
+            <table style="width: 100%; font-size: 18px; margin-bottom: 20px; text-align: right; border: none;">
+                <tr><td><b>المعرف:</b> {s_info['المعرف']}</td><td><b>الاسم:</b> {s_info['الاسم_الثلاثي']} {s_info['اللقب']}</td></tr>
+                <tr><td><b>المهنة:</b> {s_info['المهنة']}</td><td><b>تاريخ الولادة:</b> {s_info['تاريخ_الولادة']}</td></tr>
+            </table>
+            <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 18px;">
+                <tr style="background-color: #1E4620; color: white;">
+                    <th style="padding: 10px; border: 1px solid black;">الوحدة التقييمية</th>
+                    <th style="padding: 10px; border: 1px solid black;">العدد (من 20)</th>
+                </tr>
+                <tr><td style="border: 1px solid black; padding: 10px;">الوحدة الأولى</td><td style="border: 1px solid black; padding: 10px;">{g_info['u1']}</td></tr>
+                <tr><td style="border: 1px solid black; padding: 10px;">الوحدة الثانية</td><td style="border: 1px solid black; padding: 10px;">{g_info['u2']}</td></tr>
+                <tr><td style="border: 1px solid black; padding: 10px;">الوحدة الثالثة</td><td style="border: 1px solid black; padding: 10px;">{g_info['u3']}</td></tr>
+                <tr><td style="border: 1px solid black; padding: 10px;">الوحدة الرابعة</td><td style="border: 1px solid black; padding: 10px;">{g_info['u4']}</td></tr>
+            </table>
+            <div style="margin-top: 20px; font-weight: bold; color: #1E4620;">
+                <p>المعدل العام: {final_score} / 20</p>
+                <p>النتيجة: <span style="color: {result_color};">{result}</span></p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
 elif choice == "تغيير الضوارب":
     st.subheader("⚙️ تعديل الضوارب (المعاملات)")
     conn = get_db_connection()
@@ -114,4 +164,4 @@ elif choice == "حذف طالب":
             conn.commit()
             conn.close()
             st.error("⚠️ تم حذف الطالب وجميع بياناته بنجاح!")
-            st.rerun()
+            st.rerun()     st.rerun()

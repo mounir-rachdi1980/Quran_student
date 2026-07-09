@@ -114,8 +114,15 @@ elif choice == "استخراج بطاقة الأعداد":
         sum_weights = settings['w_hifz'] + settings['w_riwaya'] + settings['w_diraya'] + settings['w_hodoor']
         final_score = round(total_points / sum_weights, 2)
         
-        result = "ناجح ومبارك له 🎉" if final_score >= 10.0 else "راسب وله فرصة تدارك 📑"
-        result_color = "#1E4620" if final_score >= 10.0 else "#8B0000"
+        # المنطق الجديد للنتيجة والملاحظة
+        if final_score >= 10.0:
+            result = "مرتقٍ (ناجح) 🎉"
+            note = "مبارك للطالب، نوصيه بمواصلة الجد والاجتهاد في المرحلة القادمة."
+            result_color = "#1E4620"
+        else:
+            result = "راسب (لم يرتقِ) 📑"
+            note = "نوصي الطالب بمضاعفة الجهود والتركيز أكثر في الفترات القادمة."
+            result_color = "#8B0000"
         
         st.markdown(f"""
         <div style="border: 3px double #1E4620; padding: 25px; border-radius: 10px; background-color: #FAFAFA; direction: rtl; font-family: 'Arial', sans-serif; text-align: right;">
@@ -139,8 +146,9 @@ elif choice == "استخراج بطاقة الأعداد":
                 <tr><td style="border: 1px solid black; padding: 10px;">المواظبة</td><td style="border: 1px solid black; padding: 10px;">{g_info['u4']}</td></tr>
             </table>
             <div style="margin-top: 20px; font-weight: bold; color: #1E4620;">
-                <p>المعدل العام: {final_score} / 20</p>
-                <p>النتيجة: <span style="color: {result_color};">{result}</span></p>
+                <p style="font-size: 22px;">المعدل العام: {final_score} / 20</p>
+                <p style="color: {result_color}; font-size: 20px;">القرار النهائي: {result}</p>
+                <p style="color: #444; font-size: 16px; font-style: italic;">ملاحظة اللجنة: {note}</p>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -172,4 +180,4 @@ elif choice == "حذف طالب":
             conn.commit()
             conn.close()
             st.error("⚠️ تم حذف الطالب وجميع بياناته بنجاح!")
-            st.rerun()                 
+            st.rerun()

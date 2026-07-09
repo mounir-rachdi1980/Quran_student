@@ -101,8 +101,12 @@ elif choice == "استخراج بطاقة الأعداد":
         s_info = students_df[students_df['المعرف'] == s_id].iloc[0]
         g_info = grades_df[grades_df['المعرف'] == s_id].iloc[0]
         
-        total_points = (g_info['u1'] * settings['w_hifz']) + (g_info['u2'] * settings['w_riwaya']) + \
-                       (g_info['u3'] * settings['w_diraya']) + (g_info['u4'] * settings['w_hodoor'])
+        # الحساب بناءً على المواد (u1=الحفظ، u2=الرواية، u3=الدراية، u4=المواظبة)
+        total_points = (g_info['u1'] * settings['w_hifz']) + \
+                       (g_info['u2'] * settings['w_riwaya']) + \
+                       (g_info['u3'] * settings['w_diraya']) + \
+                       (g_info['u4'] * settings['w_hodoor'])
+        
         sum_weights = settings['w_hifz'] + settings['w_riwaya'] + settings['w_diraya'] + settings['w_hodoor']
         final_score = round(total_points / sum_weights, 2)
         
@@ -122,13 +126,13 @@ elif choice == "استخراج بطاقة الأعداد":
             </table>
             <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 18px;">
                 <tr style="background-color: #1E4620; color: white;">
-                    <th style="padding: 10px; border: 1px solid black;">الوحدة التقييمية</th>
+                    <th style="padding: 10px; border: 1px solid black;">المادة التقييمية</th>
                     <th style="padding: 10px; border: 1px solid black;">العدد (من 20)</th>
                 </tr>
-                <tr><td style="border: 1px solid black; padding: 10px;">الوحدة الأولى</td><td style="border: 1px solid black; padding: 10px;">{g_info['u1']}</td></tr>
-                <tr><td style="border: 1px solid black; padding: 10px;">الوحدة الثانية</td><td style="border: 1px solid black; padding: 10px;">{g_info['u2']}</td></tr>
-                <tr><td style="border: 1px solid black; padding: 10px;">الوحدة الثالثة</td><td style="border: 1px solid black; padding: 10px;">{g_info['u3']}</td></tr>
-                <tr><td style="border: 1px solid black; padding: 10px;">الوحدة الرابعة</td><td style="border: 1px solid black; padding: 10px;">{g_info['u4']}</td></tr>
+                <tr><td style="border: 1px solid black; padding: 10px;">الحفظ</td><td style="border: 1px solid black; padding: 10px;">{g_info['u1']}</td></tr>
+                <tr><td style="border: 1px solid black; padding: 10px;">الرواية</td><td style="border: 1px solid black; padding: 10px;">{g_info['u2']}</td></tr>
+                <tr><td style="border: 1px solid black; padding: 10px;">الدراية</td><td style="border: 1px solid black; padding: 10px;">{g_info['u3']}</td></tr>
+                <tr><td style="border: 1px solid black; padding: 10px;">المواظبة</td><td style="border: 1px solid black; padding: 10px;">{g_info['u4']}</td></tr>
             </table>
             <div style="margin-top: 20px; font-weight: bold; color: #1E4620;">
                 <p>المعدل العام: {final_score} / 20</p>
@@ -164,4 +168,4 @@ elif choice == "حذف طالب":
             conn.commit()
             conn.close()
             st.error("⚠️ تم حذف الطالب وجميع بياناته بنجاح!")
-            st.rerun()     
+            st.rerun()         st.rerun()     

@@ -29,11 +29,7 @@ init_db()
 st.set_page_config(page_title="نظام الرابطة", layout="wide", page_icon="🕌")
 st.markdown("""<style>.stApp { direction: rtl !important; text-align: right !important; } [data-testid="stSidebar"] { direction: rtl !important; }</style>""", unsafe_allow_html=True)
 
-st.markdown("""
-    <h1 style="color: #1A5276; font-family: 'Arial', sans-serif; text-align: center; margin-bottom: 30px;">
-        إدارة الفرع المحلي للرابطة الوطنية للقرآن الكريم بالمكناسي
-    </h1>
-    """, unsafe_allow_html=True)
+st.markdown("""<h1 style="color: #1A5276; font-family: 'Arial', sans-serif; text-align: center; margin-bottom: 30px;">إدارة الفرع المحلي للرابطة الوطنية للقرآن الكريم بالمكناسي</h1>""", unsafe_allow_html=True)
 
 # --- 3. القائمة ---
 menu = ["تسجيل طالب جديد", "المتابعة البيداغوجية", "استخراج بطاقة الأعداد", "تغيير الضوارب", "حذف طالب"]
@@ -41,109 +37,88 @@ choice = st.sidebar.selectbox("قائمة التحكم", menu)
 
 # --- 4. العمليات ---
 if choice == "تسجيل طالب جديد":
-    st.markdown("<div style='text-align: center;'><h2 style='color: #2E86C1;'>📝 استمارة تسجيل طالب جديد</h2></div>", unsafe_allow_html=True)
     with st.form("student_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
         name = col1.text_input("الاسم الثلاثي")
         last_name = col2.text_input("اللقب")
-        dob = col1.date_input("تاريخ الولادة")
-        cin = col2.text_input("رقم بطاقة التعريف")
-        job = col1.text_input("المهنة")
-        edu_level = col2.text_input("المستوى التعليمي")
-        stage = col1.selectbox("اختر المرحلة", ["المرحلة الأولى: قالون (4 وحدات)", "المرحلة الثانية: نافع وحفص (3 وحدات)", "المرحلة الثالثة: سما وقراءات (4 وحدات)"])
+        stage = col1.selectbox("اختر المرحلة", ["المرحلة الأولى: قالون", "المرحلة الثانية: نافع وحفص", "المرحلة الثالثة: سما وقراءات"])
         unit = col2.number_input("رقم الوحدة", min_value=1, max_value=10, value=1)
         submitted = st.form_submit_button("حفظ الطالب")
 
     if submitted:
         conn = get_db_connection()
         c = conn.cursor()
-        c.execute("INSERT INTO students (الاسم_الثلاثي, اللقب, تاريخ_الولادة, بطاقة_التعريف, المهنة, المستوى_التعليمي, المرحلة, الوحدة) VALUES (?,?,?,?,?,?,?,?)", 
-                  (name, last_name, str(dob), cin, job, edu_level, stage, unit))
+        c.execute("INSERT INTO students (الاسم_الثلاثي, اللقب, المرحلة, الوحدة) VALUES (?,?,?,?)", (name, last_name, stage, unit))
         c.execute("INSERT INTO grades (المعرف, u1, u2, u3, u4) VALUES (?,0,0,0,0)", (c.lastrowid,))
         conn.commit()
         conn.close()
-        st.success(f"✅ تم تسجيل الطالب بنجاح! (المعرف ID: {c.lastrowid})")
+        st.success(f"✅ تم التسجيل بنجاح! المعرف: {c.lastrowid}")
 
 elif choice == "المتابعة البيداغوجية":
-    st.subheader("📊 رصد الدرجات الأربع")
     df = pd.read_sql_query("SELECT * FROM students", get_db_connection())
     if not df.empty:
-        s_id = st.selectbox("اختر الطالب (عن طريق المعرف ID)", df['المعرف'].tolist())
-        row = df[df['المعرف'] == s_id].iloc[0]
-        st.write(f"الطالب: {row['الاسم_الثلاثي']} {row['اللقب']} | المستوى: {row['المستوى_التعليمي']}")
-        
+        s_id = st.selectbox("اختر الطالب", df['المعرف'].tolist())
         with st.form("grades_form"):
             col1, col2 = st.columns(2)
-            hifz = col1.number_input("درجة الحفظ", 0.0, 20.0, value=0.0)
-            riwaya = col2.number_input("درجة الرواية", 0.0, 20.0, value=0.0)
-            diraya = col1.number_input("درجة الدراية", 0.0, 20.0, value=0.0)
-            hodoor = col2.number_input("درجة المواظبة", 0.0, 20.0, value=0.0)
-            
+            hifz = col1.number_input("درجة الحفظ", 0.0, 20.0)
+            riwaya = col2.number_input("درجة الرواية", 0.0, 20.0)
+            diraya = col1.number_input("درجة الدراية", 0.0, 20.0)
+            hodoor = col2.number_input("درجة المواظبة", 0.0, 20.0)
             if st.form_submit_button("حفظ الدرجات"):
                 conn = get_db_connection()
                 conn.execute("UPDATE grades SET u1=?, u2=?, u3=?, u4=? WHERE المعرف=?", (hifz, riwaya, diraya, hodoor, s_id))
                 conn.commit()
                 conn.close()
-                st.success("✅ تم حفظ الدرجات الأربع بنجاح!")
+                st.success("✅ تم حفظ الدرجات!")
 
 elif choice == "استخراج بطاقة الأعداد":
-    st.subheader("🖨️ استخراج وطباعة كشف الأعداد السنوي")
     conn = get_db_connection()
     students_df = pd.read_sql_query("SELECT * FROM students", conn)
     grades_df = pd.read_sql_query("SELECT * FROM grades", conn)
     settings = pd.read_sql_query("SELECT * FROM settings WHERE id=1", conn).iloc[0]
     conn.close()
 
-    if students_df.empty:
-        st.warning("⚠️ لا توجد بيانات طلاب متوفرة.")
-    else:
-        s_id = st.selectbox("اختر معرف الطالب لإنتاج كشفه", students_df['المعرف'])
-        s_info = students_df[students_df['المعرف'] == s_id].iloc[0]
-        g_info = grades_df[grades_df['المعرف'] == s_id].iloc[0]
+    if not students_df.empty:
+        s_id = st.selectbox("اختر الطالب", students_df['المعرف'])
+        s = students_df[students_df['المعرف'] == s_id].iloc[0]
+        g = grades_df[grades_df['المعرف'] == s_id].iloc[0]
         
-        total_points = (g_info['u1'] * settings['w_hifz']) + (g_info['u2'] * settings['w_riwaya']) + (g_info['u3'] * settings['w_diraya']) + (g_info['u4'] * settings['w_hodoor'])
-        sum_weights = settings['w_hifz'] + settings['w_riwaya'] + settings['w_diraya'] + settings['w_hodoor']
-        final_score = round(total_points / sum_weights, 2)
+        final_score = round(((g['u1']*settings['w_hifz']) + (g['u2']*settings['w_riwaya']) + (g['u3']*settings['w_diraya']) + (g['u4']*settings['w_hodoor'])) / (settings['w_hifz']+settings['w_riwaya']+settings['w_diraya']+settings['w_hodoor']), 2)
         
-        if final_score < 10.0:
-            result, note, result_color = "يرسب 📑", "-", "#8B0000"
+        if final_score < 10: res, note = "يرسب", "-"
         else:
-            result, result_color = "يرتقي 🎉", "#1E4620"
+            res = "يرتقي"
             if final_score < 12: note = "متوسط"
             elif final_score < 14: note = "فوق المتوسط"
             elif final_score < 16: note = "قريب من الحسن"
             elif final_score < 18: note = "حسن"
             else: note = "حسن جدا"
-        
+
         st.markdown(f"""
-        <div style="border: 3px double #1E4620; padding: 25px; border-radius: 10px; background-color: #FAFAFA; direction: rtl; font-family: 'Arial', sans-serif; text-align: right;">
-            <div style="text-align: center;">
-                <h2 style="margin: 0; color: #1E4620;">بطاقة تقييم وكشف أعداد طالب سنوي</h2>
-                <h4 style="color: gray; margin-top: 5px;">الفرع المحلي للرابطة الوطنية للقرآن الكريم بالمكناسي</h4>
-                <hr style="border-top: 2px solid #1E4620; margin: 15px 0;">
+        <div style="border: 3px double #1E4620; padding: 25px; border-radius: 10px; background-color: #FAFAFA; direction: rtl;">
+            <h2 style="text-align: center; color: #1E4620; margin-bottom: 5px;">بطاقة تقييم وكشف أعداد طالب سنوي</h2>
+            <h4 style="text-align: center; color: gray; margin-top: 0;">الفرع المحلي للرابطة الوطنية للقرآن الكريم بالمكناسي</h4>
+            <hr style="border-top: 2px solid #1E4620; margin: 20px 0;">
+            <div style="display: flex; justify-content: space-between; font-size: 18px; margin-bottom: 10px;">
+                <p><b>الاسم واللقب:</b> {s['الاسم_الثلاثي']} {s['اللقب']}</p>
+                <p><b>المعرف:</b> {s['المعرف']}</p>
             </div>
-            <div style="font-size: 18px; margin-bottom: 20px;">
-                <p><b>الاسم واللقب:</b> {s_info['الاسم_الثلاثي']} {s_info['اللقب']}</p>
-                <p><b>المعرف:</b> {s_info['المعرف']} | <b>المرسم بالوحدة:</b> {s_info['الوحدة']} | <b>المرحلة:</b> {s_info['المرحلة'].split(':')[0]}</p>
-            </div>
+            <p style="font-size: 18px; margin-bottom: 20px;"><b>المرسم بالوحدة:</b> الوحدة رقم {s['الوحدة']} من {s['المرحلة']} | <b>المركز:</b> المكناسي</p>
             <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 18px;">
-                <tr style="background-color: #1E4620; color: white;"><th style="padding: 10px; border: 1px solid black;">المادة التقييمية</th><th style="padding: 10px; border: 1px solid black;">العدد (من 20)</th></tr>
-                <tr><td style="border: 1px solid black; padding: 10px;">الحفظ</td><td style="border: 1px solid black; padding: 10px;">{g_info['u1']}</td></tr>
-                <tr><td style="border: 1px solid black; padding: 10px;">الرواية</td><td style="border: 1px solid black; padding: 10px;">{g_info['u2']}</td></tr>
-                <tr><td style="border: 1px solid black; padding: 10px;">الدراية</td><td style="border: 1px solid black; padding: 10px;">{g_info['u3']}</td></tr>
-                <tr><td style="border: 1px solid black; padding: 10px;">المواظبة</td><td style="border: 1px solid black; padding: 10px;">{g_info['u4']}</td></tr>
+                <tr style="background: #1E4620; color: white;"><th style="padding: 10px;">المادة التقييمية</th><th style="padding: 10px;">العدد (من 20)</th></tr>
+                <tr><td style="padding: 10px; border: 1px solid #ddd;">الحفظ</td><td style="padding: 10px; border: 1px solid #ddd;">{g['u1']}</td></tr>
+                <tr><td style="padding: 10px; border: 1px solid #ddd;">الرواية</td><td style="padding: 10px; border: 1px solid #ddd;">{g['u2']}</td></tr>
+                <tr><td style="padding: 10px; border: 1px solid #ddd;">الدراية</td><td style="padding: 10px; border: 1px solid #ddd;">{g['u3']}</td></tr>
+                <tr><td style="padding: 10px; border: 1px solid #ddd;">المواظبة</td><td style="padding: 10px; border: 1px solid #ddd;">{g['u4']}</td></tr>
             </table>
-            <div style="margin-top: 20px; font-weight: bold; color: #1E4620;">
-                <p style="font-size: 20px;">المعدل العام: {final_score} / 20</p>
-                <p style="color: {result_color}; font-size: 20px;">النتيجة: {result}</p>
-                <p style="color: #444; font-size: 18px;">الملاحظة: {note}</p>
+            <div style="margin-top: 20px; font-weight: bold; color: #1E4620; font-size: 20px;">
+                <p>المعدل العام: {final_score} / 20 | النتيجة: {res}</p>
+                <p>الملاحظة: {note}</p>
             </div>
-            <div style="margin-top: 30px; text-align: left; font-size: 16px;"><p><b>المركز:</b> المكناسي</p></div>
         </div>
         """, unsafe_allow_html=True)
 
 elif choice == "تغيير الضوارب":
-    st.subheader("⚙️ تعديل الضوارب (المعاملات)")
     conn = get_db_connection()
     w = pd.read_sql_query("SELECT * FROM settings WHERE id=1", conn).iloc[0]
     with st.form("weights_form"):
@@ -151,19 +126,17 @@ elif choice == "تغيير الضوارب":
         if st.form_submit_button("حفظ الضوارب"):
             conn.execute("UPDATE settings SET w_hifz=?, w_riwaya=?, w_diraya=?, w_hodoor=? WHERE id=1", (w1, w2, w3, w4))
             conn.commit()
-            st.success("✅ تم تحديث الضوارب!")
+            st.success("✅ تم التحديث!")
     conn.close()
 
 elif choice == "حذف طالب":
-    st.subheader("🗑️ حذف طالب")
     df = pd.read_sql_query("SELECT * FROM students", get_db_connection())
     if not df.empty:
         del_id = st.selectbox("اختر الطالب للحذف", df['المعرف'].tolist())
-        if st.button("حذف نهائي للطالب"):
+        if st.button("حذف نهائي"):
             conn = get_db_connection()
             conn.execute("DELETE FROM students WHERE المعرف=?", (del_id,))
             conn.execute("DELETE FROM grades WHERE المعرف=?", (del_id,))
             conn.commit()
             conn.close()
-            st.error("⚠️ تم حذف الطالب!")
-            st.rerun()          
+            st.rerun()      

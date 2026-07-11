@@ -9,7 +9,7 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     c = conn.cursor()
-    # تحديث الجدول ليشمل حقول إضافية: مكان_الولادة، المهنة، معرف_الطالب
+    # إنشاء الجدول بالهيكل الجديد المحدث
     c.execute('''CREATE TABLE IF NOT EXISTS students 
                  (المعرف INTEGER PRIMARY KEY AUTOINCREMENT, الاسم_الثلاثي TEXT, اللقب TEXT, 
                   تاريخ_الولادة TEXT, مكان_الولادة TEXT, المهنة TEXT, بطاقة_التعريف TEXT, 
@@ -36,7 +36,6 @@ choice = st.sidebar.selectbox("قائمة التحكم", menu)
 if choice == "تسجيل طالب جديد":
     st.subheader("📝 تسجيل طالب جديد")
     with st.form("student_form", clear_on_submit=True):
-        # القسم الأول: البيانات الشخصية
         st.markdown("### 👤 البيانات الشخصية")
         col1, col2 = st.columns(2)
         name = col1.text_input("الاسم الثلاثي")
@@ -47,10 +46,9 @@ if choice == "تسجيل طالب جديد":
         job = col2.text_input("المهنة")
         edu_level = col1.text_input("المستوى التعليمي")
         
-        # القسم الثاني: بيانات المرحلة الدراسية
         st.markdown("### 🎓 بيانات المرحلة الدراسية")
         col3, col4 = st.columns(2)
-        stage = col3.selectbox("اختر المرحلة:", ["المرحلة الأولى: قالون", "المرحلة الثانية: نافع وحفص", "المرحلة الثالثة: القراءات"])
+        stage = col3.selectbox("المرحلة:", ["المرحلة الأولى: قالون", "المرحلة الثانية: نافع وحفص", "المرحلة الثالثة: القراءات"])
         unit = col4.number_input("رقم الوحدة:", min_value=1, max_value=4, value=1)
         
         submitted = st.form_submit_button("حفظ الطالب")
@@ -74,7 +72,7 @@ elif choice == "المتابعة البيداغوجية":
         s_id = df[df['label'] == selection]['المعرف'].iloc[0]
         row = df[df['المعرف'] == s_id].iloc[0]
         
-        st.markdown(f"### 👤 الطالب: {row['الاسم_الثلاثي']} {row['القب']} | المعرف (ID): {row['المعرف']}")
+        st.markdown(f"### 👤 الطالب: {row['الاسم_الثلاثي']} {row['اللقب']} | المعرف (ID): {row['المعرف']}")
         st.info(f"🎓 المرحلة: {row['المرحلة']} | 📖 الوحدة الحالية: {row['الوحدة']}")
         
         new_grade = st.number_input("أدخل درجة الوحدة الحالية", 0.0, 20.0)
@@ -98,7 +96,7 @@ elif choice == "استخراج بطاقة أعداد":
         
         st.markdown("---")
         st.markdown(f"### 📋 بطاقة أعداد الطالب")
-        st.write(f"**الاسم:** {student['الاسم_الثلاثي']} {student['القب']} | **المعرف (ID):** {student['المعرف']}")
+        st.write(f"**الاسم:** {student['الاسم_الثلاثي']} {student['اللقب']} | **المعرف (ID):** {student['المعرف']}")
         st.write(f"**تاريخ الولادة:** {student['تاريخ_الولادة']} في {student['مكان_الولادة']} | **المهنة:** {student['المهنة']}")
         st.write(f"**المرحلة:** {student['المرحلة']} | **الوحدة:** {student['الوحدة']}")
         
@@ -110,9 +108,8 @@ elif choice == "استخراج بطاقة أعداد":
         if st.button("طباعة البطاقة"):
             st.info("استخدم Ctrl+P في المتصفح لطباعة هذه البطاقة.")
 
-# (باقي الأجزاء: تغيير الضوارب وحذف طالب تبقى كما هي)
 elif choice == "تغيير الضوارب":
-    st.subheader("⚙️ تعديل الضوارب (المعاملات)")
+    st.subheader("⚙️ تعديل الضوارب")
     conn = get_db_connection()
     w = pd.read_sql_query("SELECT * FROM settings WHERE id=1", conn).iloc[0]
     with st.form("weights_form"):

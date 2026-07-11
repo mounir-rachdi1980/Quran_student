@@ -9,6 +9,7 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     c = conn.cursor()
+    # إنشاء الجداول
     c.execute('''CREATE TABLE IF NOT EXISTS students 
                  (المعرف INTEGER PRIMARY KEY AUTOINCREMENT, الاسم_الثلاثي TEXT, اللقب TEXT, 
                   تاريخ_الولادة TEXT, بطاقة_التعريف TEXT, المهنة TEXT, المستوى_التعليمي TEXT, المرحلة TEXT, الوحدة INTEGER)''')
@@ -17,6 +18,7 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS settings 
                  (id INTEGER PRIMARY KEY, w_hifz REAL, w_riwaya REAL, w_diraya REAL, w_hodoor REAL)''')
     
+    # إعداد الضوارب الافتراضية
     c.execute("SELECT count(*) FROM settings")
     if c.fetchone()[0] == 0:
         c.execute("INSERT INTO settings (id, w_hifz, w_riwaya, w_diraya, w_hodoor) VALUES (1, 3.0, 2.0, 2.0, 1.0)")
@@ -26,21 +28,17 @@ def init_db():
 init_db()
 
 # --- 2. التنسيق ---
-st.set_page_config(page_title="نظام الرابطة", layout="wide", page_icon="🕌")
+st.set_page_config(page_title="نظام الرابطة", layout="wide")
 st.markdown("""<style>.stApp { direction: rtl !important; text-align: right !important; } [data-testid="stSidebar"] { direction: rtl !important; }</style>""", unsafe_allow_html=True)
 
-# العنوان الرئيسي (تم حذف سطر st.image لتجنب الخطأ)
-st.markdown("""
-    <h1 style="color: #1A5276; font-family: 'Arial', sans-serif; text-align: center; margin-bottom: 30px;">
-        إدارة الفرع المحلي للرابطة الوطنية للقرآن الكريم بالمكناسي
-    </h1>
-    """, unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: #1A5276;'>إدارة الفرع المحلي للرابطة الوطنية للقرآن الكريم بالمكناسي</h1>", unsafe_allow_html=True)
 
 # --- 3. القائمة ---
-menu = ["تسجيل طالب جديد", "المتابعة البيداغوجية", "تغيير الضوارب", "حذف طالب"]
+menu = ["تسجيل طالب جديد", "المتابعة البيداغوجية", "استخراج بطاقة أعداد", "تغيير الضوارب", "حذف طالب"]
 choice = st.sidebar.selectbox("قائمة التحكم", menu)
 
 # --- 4. العمليات ---
+
 if choice == "تسجيل طالب جديد":
     st.markdown("<div style='text-align: center;'><h2 style='color: #2E86C1;'>📝 استمارة تسجيل طالب جديد</h2></div>", unsafe_allow_html=True)
     with st.form("student_form", clear_on_submit=True):
@@ -53,12 +51,11 @@ if choice == "تسجيل طالب جديد":
         edu_level = col2.text_input("المستوى التعليمي")
         submitted = st.form_submit_button("حفظ الطالب")
 
-    st.markdown("<div style='text-align: center; margin-top: 30px;'><h3 style='color: #D35400;'>🎓 المرحلة الدراسية للطالب</h3></div>", unsafe_allow_html=True)
     stage = st.selectbox("اختر المرحلة", [
         "المرحلة الأولى: قالون (4 وحدات)", 
         "المرحلة الثانية: نافع وحفص (3 وحدات)", 
         "المرحلة الثالثة: سما وقراءات (4 وحدات)"
-    ], label_visibility="collapsed")
+    ])
     
     if submitted:
         conn = get_db_connection()
@@ -68,7 +65,7 @@ if choice == "تسجيل طالب جديد":
         c.execute("INSERT INTO grades (المعرف, u1, u2, u3, u4) VALUES (?,0,0,0,0)", (c.lastrowid,))
         conn.commit()
         conn.close()
-        st.success(f"✅ تم تسجيل الطالب بنجاح! (المعرف ID: {c.lastrowid})")
+        st.success(f"✅ تم تسجيل الطالب بنجاح! (المعرف الخاص للطالب هو: {c.lastrowid})")
 
 elif choice == "المتابعة البيداغوجية":
     st.subheader("📊 رصد الدرجات والارتقاء")
@@ -76,7 +73,8 @@ elif choice == "المتابعة البيداغوجية":
     if not df.empty:
         s_id = st.selectbox("اختر الطالب (عن طريق المعرف ID)", df['المعرف'].tolist())
         row = df[df['المعرف'] == s_id].iloc[0]
-        st.write(f"الطالب: {row['الاسم_الثلاثي']} {row['اللقب']} | المستوى: {row['المستوى_التعليمي']} | الوحدة: {row['الوحدة']}")
+        st.info(f"👤 الطالب: {row['الاسم_الثلاثي']} {row['اللقب']} | 🎓 المستوى: {row['المستوى_التعليمي']} | 📖 الوحدة الحالية: {row['الوحدة']}")
+        
         new_grade = st.number_input("أدخل درجة الوحدة الحالية", 0.0, 20.0)
         if st.button("تحديث الدرجة والارتقاء"):
             conn = get_db_connection()
@@ -86,6 +84,24 @@ elif choice == "المتابعة البيداغوجية":
                 st.success("🎉 تم الارتقاء للوحدة التالية!")
             conn.commit()
             conn.close()
+
+elif choice == "استخراج بطاقة أعداد":
+    st.subheader("🖨️ معاينة وطباعة بطاقة الأعداد")
+    df = pd.read_sql_query("SELECT * FROM students", get_db_connection())
+    if not df.empty:
+        s_id = st.selectbox("اختر الطالب للمعاينة", df['المعرف'].tolist())
+        student = df[df['المعرف'] == s_id].iloc[0]
+        grades = pd.read_sql_query(f"SELECT * FROM grades WHERE المعرف={s_id}", get_db_connection()).iloc[0]
+        
+        st.markdown(f"### 📋 بطاقة أعداد الطالب: {student['الاسم_الثلاثي']} {student['اللقب']}")
+        st.table(pd.DataFrame({
+            "الوحدة": ["الوحدة 1", "الوحدة 2", "الوحدة 3", "الوحدة 4"],
+            "الدرجة": [grades['u1'], grades['u2'], grades['u3'], grades['u4']]
+        }))
+        
+        if st.button("اضغط هنا للطباعة"):
+            st.write("استخدم (Ctrl + P) من لوحة المفاتيح لطباعة هذه البطاقة.")
+            st.balloons()
 
 elif choice == "تغيير الضوارب":
     st.subheader("⚙️ تعديل الضوارب (المعاملات)")
@@ -106,7 +122,7 @@ elif choice == "حذف طالب":
     st.subheader("🗑️ حذف طالب")
     df = pd.read_sql_query("SELECT * FROM students", get_db_connection())
     if not df.empty:
-        del_id = st.selectbox("اختر الطالب للحذف (عن طريق المعرف ID)", df['المعرف'].tolist())
+        del_id = st.selectbox("اختر الطالب للحذف (ID)", df['المعرف'].tolist())
         if st.button("حذف نهائي للطالب"):
             conn = get_db_connection()
             conn.execute("DELETE FROM students WHERE المعرف=?", (del_id,))

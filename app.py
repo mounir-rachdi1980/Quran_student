@@ -9,6 +9,7 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     c = conn.cursor()
+    # إنشاء الجداول مع إضافة خانة المستوى التعليمي
     c.execute('''CREATE TABLE IF NOT EXISTS students 
                  (المعرف INTEGER PRIMARY KEY AUTOINCREMENT, الاسم_الثلاثي TEXT, اللقب TEXT, 
                   تاريخ_الولادة TEXT, بطاقة_التعريف TEXT, المهنة TEXT, المستوى_التعليمي TEXT, المرحلة TEXT, الوحدة INTEGER)''')
@@ -29,7 +30,8 @@ init_db()
 st.set_page_config(page_title="نظام الرابطة", layout="wide", page_icon="🕌")
 st.markdown("""<style>.stApp { direction: rtl !important; text-align: right !important; } [data-testid="stSidebar"] { direction: rtl !important; }</style>""", unsafe_allow_html=True)
 
-# العنوان الرئيسي (بدون استدعاء صورة لتجنب الخطأ)
+# إضافة الشعار والعنوان المنسق
+st.image("logo.jpg", width=150)
 st.markdown("""
     <h1 style="color: #1A5276; font-family: 'Arial', sans-serif; text-align: center; margin-bottom: 30px;">
         إدارة الفرع المحلي للرابطة الوطنية للقرآن الكريم بالمكناسي
@@ -42,7 +44,13 @@ choice = st.sidebar.selectbox("قائمة التحكم", menu)
 
 # --- 4. العمليات ---
 if choice == "تسجيل طالب جديد":
-    st.markdown("<div style='text-align: center;'><h2 style='color: #2E86C1;'>📝 استمارة تسجيل طالب جديد</h2></div>", unsafe_allow_html=True)
+    # عناوين منسقة في الوسط
+    st.markdown("""
+        <div style="text-align: center;">
+            <h2 style="color: #2E86C1;">📝 استمارة تسجيل طالب جديد</h2>
+        </div>
+    """, unsafe_allow_html=True)
+    
     with st.form("student_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
         name = col1.text_input("الاسم الثلاثي")
@@ -53,7 +61,13 @@ if choice == "تسجيل طالب جديد":
         edu_level = col2.text_input("المستوى التعليمي")
         submitted = st.form_submit_button("حفظ الطالب")
 
-    st.markdown("<div style='text-align: center; margin-top: 30px;'><h3 style='color: #D35400;'>🎓 المرحلة الدراسية للطالب</h3></div>", unsafe_allow_html=True)
+    # المرحلة الدراسية كعنوان ثانٍ في الوسط
+    st.markdown("""
+        <div style="text-align: center; margin-top: 30px;">
+            <h3 style="color: #D35400;">🎓 المرحلة الدراسية للطالب</h3>
+        </div>
+    """, unsafe_allow_html=True)
+    
     stage = st.selectbox("اختر المرحلة", [
         "المرحلة الأولى: قالون (4 وحدات)", 
         "المرحلة الثانية: نافع وحفص (3 وحدات)", 
@@ -77,6 +91,7 @@ elif choice == "المتابعة البيداغوجية":
         s_id = st.selectbox("اختر الطالب (عن طريق المعرف ID)", df['المعرف'].tolist())
         row = df[df['المعرف'] == s_id].iloc[0]
         st.write(f"الطالب: {row['الاسم_الثلاثي']} {row['اللقب']} | المستوى: {row['المستوى_التعليمي']} | الوحدة: {row['الوحدة']}")
+        
         new_grade = st.number_input("أدخل درجة الوحدة الحالية", 0.0, 20.0)
         if st.button("تحديث الدرجة والارتقاء"):
             conn = get_db_connection()

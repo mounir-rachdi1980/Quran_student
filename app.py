@@ -9,15 +9,13 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     c = conn.cursor()
+    # تحديث الجدول ليشمل حقول إضافية: مكان_الولادة، المهنة، معرف_الطالب
     c.execute('''CREATE TABLE IF NOT EXISTS students 
                  (المعرف INTEGER PRIMARY KEY AUTOINCREMENT, الاسم_الثلاثي TEXT, اللقب TEXT, 
-                  تاريخ_الولادة TEXT, بطاقة_التعريف TEXT, المهنة TEXT, المستوى_التعليمي TEXT, المرحلة TEXT, الوحدة INTEGER)''')
+                  تاريخ_الولادة TEXT, مكان_الولادة TEXT, المهنة TEXT, بطاقة_التعريف TEXT, 
+                  المستوى_التعليمي TEXT, المرحلة TEXT, الوحدة INTEGER)''')
     c.execute('''CREATE TABLE IF NOT EXISTS grades (المعرف INTEGER PRIMARY KEY, u1 REAL, u2 REAL, u3 REAL, u4 REAL)''')
     c.execute('''CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY, w_hifz REAL, w_riwaya REAL, w_diraya REAL, w_hodoor REAL)''')
-    
-    c.execute("SELECT count(*) FROM settings")
-    if c.fetchone()[0] == 0:
-        c.execute("INSERT INTO settings (id, w_hifz, w_riwaya, w_diraya, w_hodoor) VALUES (1, 3.0, 2.0, 2.0, 1.0)")
     conn.commit()
     conn.close()
 
@@ -43,24 +41,25 @@ if choice == "تسجيل طالب جديد":
         col1, col2 = st.columns(2)
         name = col1.text_input("الاسم الثلاثي")
         last_name = col2.text_input("اللقب")
+        dob = col1.date_input("تاريخ الولادة")
+        place_birth = col2.text_input("مكان الولادة")
         cin = col1.text_input("رقم بطاقة التعريف")
-        edu_level = col2.text_input("المستوى التعليمي")
+        job = col2.text_input("المهنة")
+        edu_level = col1.text_input("المستوى التعليمي")
         
         # القسم الثاني: بيانات المرحلة الدراسية
         st.markdown("### 🎓 بيانات المرحلة الدراسية")
-        stage = st.selectbox("اختر المرحلة الدراسية:", [
-            "المرحلة الأولى: قالون (4 وحدات)", 
-            "المرحلة الثانية: نافع وحفص (3 وحدات)", 
-            "المرحلة الثالثة: سما وقراءات (4 وحدات)"
-        ])
+        col3, col4 = st.columns(2)
+        stage = col3.selectbox("اختر المرحلة:", ["المرحلة الأولى: قالون", "المرحلة الثانية: نافع وحفص", "المرحلة الثالثة: القراءات"])
+        unit = col4.number_input("رقم الوحدة:", min_value=1, max_value=4, value=1)
         
         submitted = st.form_submit_button("حفظ الطالب")
     
     if submitted:
         conn = get_db_connection()
         c = conn.cursor()
-        c.execute("INSERT INTO students (الاسم_الثلاثي, اللقب, بطاقة_التعريف, المستوى_التعليمي, المرحلة, الوحدة) VALUES (?,?,?,?,?,?)", 
-                  (name, last_name, cin, edu_level, stage, 1))
+        c.execute("INSERT INTO students (الاسم_الثلاثي, اللقب, تاريخ_الولادة, مكان_الولادة, المهنة, بطاقة_التعريف, المستوى_التعليمي, المرحلة, الوحدة) VALUES (?,?,?,?,?,?,?,?,?)", 
+                  (name, last_name, str(dob), place_birth, job, cin, edu_level, stage, unit))
         c.execute("INSERT INTO grades (المعرف, u1, u2, u3, u4) VALUES (?,0,0,0,0)", (c.lastrowid,))
         conn.commit()
         st.success(f"✅ تم تسجيل الطالب. المعرف الخاص (ID) هو: {c.lastrowid}")
@@ -70,29 +69,27 @@ elif choice == "المتابعة البيداغوجية":
     st.subheader("📊 المتابعة البيداغوجية")
     df = pd.read_sql_query("SELECT * FROM students", get_db_connection())
     if not df.empty:
-        df['label'] = df['المعرف'].astype(str) + " - " + df['الاسم_الثلاثي'] + " " + df['القب']
+        df['label'] = df['المعرف'].astype(str) + " - " + df['الاسم_الثلاثي']
         selection = st.selectbox("اختر الطالب:", df['label'].tolist())
         s_id = df[df['label'] == selection]['المعرف'].iloc[0]
         row = df[df['المعرف'] == s_id].iloc[0]
         
-        st.markdown(f"### 👤 الطالب: {row['الاسم_الثلاثي']} {row['القب']} (ID: {row['المعرف']})")
+        st.markdown(f"### 👤 الطالب: {row['الاسم_الثلاثي']} {row['القب']} | المعرف (ID): {row['المعرف']}")
         st.info(f"🎓 المرحلة: {row['المرحلة']} | 📖 الوحدة الحالية: {row['الوحدة']}")
         
         new_grade = st.number_input("أدخل درجة الوحدة الحالية", 0.0, 20.0)
-        if st.button("تحديث الدرجة والارتقاء"):
+        if st.button("تحديث الدرجة"):
             conn = get_db_connection()
             conn.execute(f"UPDATE grades SET u{row['الوحدة']}=? WHERE المعرف=?", (new_grade, s_id))
-            if new_grade >= 10:
-                conn.execute("UPDATE students SET الوحدة=? WHERE المعرف=?", (row['الوحدة'] + 1, s_id))
-                st.success("🎉 تم تحديث الدرجة والارتقاء للوحدة التالية!")
             conn.commit()
             conn.close()
+            st.success("✅ تم تحديث الدرجة!")
 
 elif choice == "استخراج بطاقة أعداد":
     st.subheader("🖨️ استخراج بطاقة الأعداد")
     df = pd.read_sql_query("SELECT * FROM students", get_db_connection())
     if not df.empty:
-        df['label'] = df['المعرف'].astype(str) + " - " + df['الاسم_الثلاثي'] + " " + df['القب']
+        df['label'] = df['المعرف'].astype(str) + " - " + df['الاسم_الثلاثي']
         selection = st.selectbox("اختر الطالب للطباعة:", df['label'].tolist())
         s_id = df[df['label'] == selection]['المعرف'].iloc[0]
         
@@ -102,7 +99,8 @@ elif choice == "استخراج بطاقة أعداد":
         st.markdown("---")
         st.markdown(f"### 📋 بطاقة أعداد الطالب")
         st.write(f"**الاسم:** {student['الاسم_الثلاثي']} {student['القب']} | **المعرف (ID):** {student['المعرف']}")
-        st.write(f"**المرحلة:** {student['المرحلة']} | **الوحدة الحالية:** {student['الوحدة']}")
+        st.write(f"**تاريخ الولادة:** {student['تاريخ_الولادة']} في {student['مكان_الولادة']} | **المهنة:** {student['المهنة']}")
+        st.write(f"**المرحلة:** {student['المرحلة']} | **الوحدة:** {student['الوحدة']}")
         
         st.table(pd.DataFrame({
             "الوحدة": ["الوحدة 1", "الوحدة 2", "الوحدة 3", "الوحدة 4"],
@@ -111,8 +109,8 @@ elif choice == "استخراج بطاقة أعداد":
         
         if st.button("طباعة البطاقة"):
             st.info("استخدم Ctrl+P في المتصفح لطباعة هذه البطاقة.")
-            st.balloons()
 
+# (باقي الأجزاء: تغيير الضوارب وحذف طالب تبقى كما هي)
 elif choice == "تغيير الضوارب":
     st.subheader("⚙️ تعديل الضوارب (المعاملات)")
     conn = get_db_connection()

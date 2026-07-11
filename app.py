@@ -9,13 +9,18 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     c = conn.cursor()
-    # إنشاء الجدول بالهيكل الجديد المحدث
+    # جدول الطلاب بالبيانات الجديدة
     c.execute('''CREATE TABLE IF NOT EXISTS students 
                  (المعرف INTEGER PRIMARY KEY AUTOINCREMENT, الاسم_الثلاثي TEXT, اللقب TEXT, 
                   تاريخ_الولادة TEXT, مكان_الولادة TEXT, المهنة TEXT, بطاقة_التعريف TEXT, 
                   المستوى_التعليمي TEXT, المرحلة TEXT, الوحدة INTEGER)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS grades (المعرف INTEGER PRIMARY KEY, u1 REAL, u2 REAL, u3 REAL, u4 REAL)''')
+    # جدول الدرجات حسب المواد
+    c.execute('''CREATE TABLE IF NOT EXISTS grades (المعرف INTEGER PRIMARY KEY, hifz REAL, riwaya REAL, diraya REAL, hodoor REAL)''')
     c.execute('''CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY, w_hifz REAL, w_riwaya REAL, w_diraya REAL, w_hodoor REAL)''')
+    
+    # التأكد من وجود سجل للإعدادات
+    c.execute("INSERT OR IGNORE INTO settings (id, w_hifz, w_riwaya, w_diraya, w_hodoor) VALUES (1, 3.0, 2.0, 2.0, 1.0)")
+    
     conn.commit()
     conn.close()
 
@@ -24,7 +29,6 @@ init_db()
 # --- 2. التنسيق ---
 st.set_page_config(page_title="نظام الرابطة", layout="wide")
 st.markdown("""<style>.stApp { direction: rtl !important; text-align: right !important; } [data-testid="stSidebar"] { direction: rtl !important; }</style>""", unsafe_allow_html=True)
-
 st.markdown("<h1 style='text-align: center; color: #1A5276;'>إدارة الفرع المحلي للرابطة الوطنية للقرآن الكريم بالمكناسي</h1>", unsafe_allow_html=True)
 
 # --- 3. القائمة ---
@@ -46,7 +50,7 @@ if choice == "تسجيل طالب جديد":
         job = col2.text_input("المهنة")
         edu_level = col1.text_input("المستوى التعليمي")
         
-        st.markdown("### 🎓 بيانات المرحلة الدراسية")
+        st.markdown("### 🎓 بيانات المرحلة والوحدة")
         col3, col4 = st.columns(2)
         stage = col3.selectbox("المرحلة:", ["المرحلة الأولى: قالون", "المرحلة الثانية: نافع وحفص", "المرحلة الثالثة: القراءات"])
         unit = col4.number_input("رقم الوحدة:", min_value=1, max_value=4, value=1)
@@ -58,30 +62,35 @@ if choice == "تسجيل طالب جديد":
         c = conn.cursor()
         c.execute("INSERT INTO students (الاسم_الثلاثي, اللقب, تاريخ_الولادة, مكان_الولادة, المهنة, بطاقة_التعريف, المستوى_التعليمي, المرحلة, الوحدة) VALUES (?,?,?,?,?,?,?,?,?)", 
                   (name, last_name, str(dob), place_birth, job, cin, edu_level, stage, unit))
-        c.execute("INSERT INTO grades (المعرف, u1, u2, u3, u4) VALUES (?,0,0,0,0)", (c.lastrowid,))
+        c.execute("INSERT INTO grades (المعرف, hifz, riwaya, diraya, hodoor) VALUES (?,0,0,0,0)", (c.lastrowid,))
         conn.commit()
         st.success(f"✅ تم تسجيل الطالب. المعرف الخاص (ID) هو: {c.lastrowid}")
         conn.close()
 
 elif choice == "المتابعة البيداغوجية":
-    st.subheader("📊 المتابعة البيداغوجية")
+    st.subheader("📊 المتابعة البيداغوجية حسب المواد")
     df = pd.read_sql_query("SELECT * FROM students", get_db_connection())
     if not df.empty:
         df['label'] = df['المعرف'].astype(str) + " - " + df['الاسم_الثلاثي']
         selection = st.selectbox("اختر الطالب:", df['label'].tolist())
         s_id = df[df['label'] == selection]['المعرف'].iloc[0]
-        row = df[df['المعرف'] == s_id].iloc[0]
         
-        st.markdown(f"### 👤 الطالب: {row['الاسم_الثلاثي']} {row['اللقب']} | المعرف (ID): {row['المعرف']}")
-        st.info(f"🎓 المرحلة: {row['المرحلة']} | 📖 الوحدة الحالية: {row['الوحدة']}")
+        # استرجاع الدرجات الحالية
+        grades = pd.read_sql_query(f"SELECT * FROM grades WHERE المعرف={s_id}", get_db_connection()).iloc[0]
         
-        new_grade = st.number_input("أدخل درجة الوحدة الحالية", 0.0, 20.0)
-        if st.button("تحديث الدرجة"):
-            conn = get_db_connection()
-            conn.execute(f"UPDATE grades SET u{row['الوحدة']}=? WHERE المعرف=?", (new_grade, s_id))
-            conn.commit()
-            conn.close()
-            st.success("✅ تم تحديث الدرجة!")
+        with st.form("grades_form"):
+            col1, col2 = st.columns(2)
+            hifz = col1.number_input("الحفظ", 0.0, 20.0, value=float(grades['hifz']))
+            riwaya = col2.number_input("الرواية", 0.0, 20.0, value=float(grades['riwaya']))
+            diraya = col1.number_input("الدراية", 0.0, 20.0, value=float(grades['diraya']))
+            hodoor = col2.number_input("الحضور", 0.0, 20.0, value=float(grades['hodoor']))
+            
+            if st.form_submit_button("تحديث أعداد المواد"):
+                conn = get_db_connection()
+                conn.execute("UPDATE grades SET hifz=?, riwaya=?, diraya=?, hodoor=? WHERE المعرف=?", (hifz, riwaya, diraya, hodoor, s_id))
+                conn.commit()
+                conn.close()
+                st.success("✅ تم تحديث الأعداد بنجاح!")
 
 elif choice == "استخراج بطاقة أعداد":
     st.subheader("🖨️ استخراج بطاقة الأعداد")
@@ -94,19 +103,13 @@ elif choice == "استخراج بطاقة أعداد":
         student = df[df['المعرف'] == s_id].iloc[0]
         grades = pd.read_sql_query(f"SELECT * FROM grades WHERE المعرف={s_id}", get_db_connection()).iloc[0]
         
-        st.markdown("---")
-        st.markdown(f"### 📋 بطاقة أعداد الطالب")
-        st.write(f"**الاسم:** {student['الاسم_الثلاثي']} {student['اللقب']} | **المعرف (ID):** {student['المعرف']}")
-        st.write(f"**تاريخ الولادة:** {student['تاريخ_الولادة']} في {student['مكان_الولادة']} | **المهنة:** {student['المهنة']}")
-        st.write(f"**المرحلة:** {student['المرحلة']} | **الوحدة:** {student['الوحدة']}")
+        st.markdown(f"### 📋 بطاقة أعداد الطالب: {student['الاسم_الثلاثي']} {student['اللقب']} (ID: {student['المعرف']})")
+        st.write(f"المرحلة: {student['المرحلة']} - الوحدة: {student['الوحدة']}")
         
         st.table(pd.DataFrame({
-            "الوحدة": ["الوحدة 1", "الوحدة 2", "الوحدة 3", "الوحدة 4"],
-            "الدرجة": [grades['u1'], grades['u2'], grades['u3'], grades['u4']]
+            "المادة": ["الحفظ", "الرواية", "الدراية", "الحضور"],
+            "الدرجة": [grades['hifz'], grades['riwaya'], grades['diraya'], grades['hodoor']]
         }))
-        
-        if st.button("طباعة البطاقة"):
-            st.info("استخدم Ctrl+P في المتصفح لطباعة هذه البطاقة.")
 
 elif choice == "تغيير الضوارب":
     st.subheader("⚙️ تعديل الضوارب")

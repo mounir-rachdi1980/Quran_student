@@ -36,11 +36,7 @@ choice = st.sidebar.selectbox("قائمة التحكم", menu)
 
 # --- 4. العمليات ---
 if choice == "تسجيل طالب جديد":
-    st.markdown("""
-        <div style="text-align: center;">
-            <h2 style="color: #2E86C1;">📝 استمارة تسجيل طالب جديد</h2>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown("<div style='text-align: center;'><h2 style='color: #2E86C1;'>📝 استمارة تسجيل طالب جديد</h2></div>", unsafe_allow_html=True)
     
     with st.form("student_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
@@ -52,12 +48,7 @@ if choice == "تسجيل طالب جديد":
         edu_level = col2.text_input("المستوى التعليمي")
         submitted = st.form_submit_button("حفظ الطالب")
 
-    st.markdown("""
-        <div style="text-align: center; margin-top: 30px;">
-            <h3 style="color: #D35400;">🎓 المرحلة الدراسية للطالب</h3>
-        </div>
-    """, unsafe_allow_html=True)
-    
+    st.markdown("<div style='text-align: center; margin-top: 30px;'><h3 style='color: #D35400;'>🎓 المرحلة الدراسية للطالب</h3></div>", unsafe_allow_html=True)
     stage = st.selectbox("اختر المرحلة", [
         "المرحلة الأولى: قالون (4 وحدات)", 
         "المرحلة الثانية: نافع وحفص (3 وحدات)", 
@@ -83,22 +74,27 @@ elif choice == "المتابعة البيداغوجية":
     if not df.empty:
         s_id = st.selectbox("اختر الطالب (عن طريق المعرف ID)", df['المعرف'].tolist())
         row = df[df['المعرف'] == s_id].iloc[0]
+        st.write(f"الطالب: {row['الاسم_الثلاثي']} {row['اللقب']} | المستوى: {row['المستوى_التعليمي']} | الوحدة: {row['الوحدة']}")
         
-        # استخدام أسماء الأعمدة المتوافقة تماماً
-        name_col = 'الاسم_الثلاثي' if 'الاسم_الثلاثي' in df.columns else df.columns[1]
-        last_col = 'اللقب' if 'اللقب' in df.columns else df.columns[2]
-        edu_col = 'المستوى_التعليمي' if 'المستوى_التعليمي' in df.columns else df.columns[6]
-        unit_col = 'الوحدة' if 'الوحدة' in df.columns else df.columns[8]
+        st.markdown("---")
+        col1, col2 = st.columns(2)
+        hifz = col1.number_input("درجة الحفظ", 0.0, 20.0)
+        riwaya = col2.number_input("درجة الرواية", 0.0, 20.0)
+        diraya = col1.number_input("درجة الدراية", 0.0, 20.0)
+        hodoor = col2.number_input("درجة المواظبة", 0.0, 20.0)
         
-        st.write(f"الطالب: {row[name_col]} {row[last_col]} | المستوى: {row[edu_col]} | الوحدة: {row[unit_col]}")
-        
-        new_grade = st.number_input("أدخل درجة الوحدة الحالية", 0.0, 20.0)
-        if st.button("تحديث الدرجة والارتقاء"):
+        if st.button("تحديث الدرجات والارتقاء"):
             conn = get_db_connection()
-            conn.execute(f"UPDATE grades SET u{row[unit_col]}=? WHERE المعرف=?", (new_grade, s_id))
-            if new_grade >= 10:
-                conn.execute(f"UPDATE students SET الوحدة=? WHERE المعرف=?", (row[unit_col] + 1, s_id))
-                st.success("🎉 تم الارتقاء للوحدة التالية!")
+            w = pd.read_sql_query("SELECT * FROM settings WHERE id=1", conn).iloc[0]
+            # حساب المعدل
+            avg = (hifz*w['w_hifz'] + riwaya*w['w_riwaya'] + diraya*w['w_diraya'] + hodoor*w['w_hodoor']) / (w['w_hifz'] + w['w_riwaya'] + w['w_diraya'] + w['w_hodoor'])
+            
+            conn.execute(f"UPDATE grades SET u{row['الوحدة']}=? WHERE المعرف=?", (avg, s_id))
+            if avg >= 10:
+                conn.execute("UPDATE students SET الوحدة=? WHERE المعرف=?", (row['الوحدة'] + 1, s_id))
+                st.success(f"🎉 تم الارتقاء! المعدل هو: {avg:.2f}")
+            else:
+                st.warning(f"⚠️ المعدل {avg:.2f} غير كافٍ للارتقاء.")
             conn.commit()
             conn.close()
 
@@ -110,7 +106,7 @@ elif choice == "تغيير الضوارب":
         w1 = st.number_input("ضارب الحفظ", value=float(w['w_hifz']))
         w2 = st.number_input("ضارب الرواية", value=float(w['w_riwaya']))
         w3 = st.number_input("ضارب الدراية", value=float(w['w_diraya']))
-        w4 = st.number_input("ضارب الحضور", value=float(w['w_hodoor']))
+        w4 = st.number_input("ضارب المواظبة", value=float(w['w_hodoor']))
         if st.form_submit_button("حفظ الضوارب"):
             conn.execute("UPDATE settings SET w_hifz=?, w_riwaya=?, w_diraya=?, w_hodoor=? WHERE id=1", (w1, w2, w3, w4))
             conn.commit()
@@ -122,7 +118,6 @@ elif choice == "حذف طالب":
     conn = get_db_connection()
     df = pd.read_sql_query("SELECT * FROM students", conn)
     conn.close()
-    
     if not df.empty:
         del_id = st.selectbox("اختر الطالب للحذف (عن طريق المعرف ID)", df['المعرف'].tolist())
         if st.button("حذف نهائي للطالب"):

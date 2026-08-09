@@ -30,8 +30,8 @@ st.set_page_config(page_title="نظام الرابطة", layout="wide", page_ico
 st.markdown("""<style>.stApp { direction: rtl !important; text-align: right !important; } [data-testid="stSidebar"] { direction: rtl !important; }</style>""", unsafe_allow_html=True)
 st.markdown("<h1 style='text-align: center;'>🕌 نظام الفرع المحلي للرابطة الوطنية للقرآن الكريم بالمكناسي</h1>", unsafe_allow_html=True)
 
-# --- 3. القائمة (تمت إضافة الإعدادات) ---
-menu = ["تسجيل طالب جديد", "المتابعة البيداغوجية", "تغيير الضوارب", "حذف طالب", "الإعدادات"]
+# --- 3. القائمة (تمت إضافة بطاقة الأعداد) ---
+menu = ["تسجيل طالب جديد", "المتابعة البيداغوجية", "بطاقة الأعداد", "تغيير الضوارب", "حذف طالب", "الإعدادات"]
 choice = st.sidebar.selectbox("قائمة التحكم", menu)
 
 # --- 4. العمليات ---
@@ -98,6 +98,56 @@ elif choice == "المتابعة البيداغوجية":
             conn.commit()
             conn.close()
 
+elif choice == "بطاقة الأعداد":
+    st.subheader("📄 استخراج بطاقة أعداد طالب")
+    conn = get_db_connection()
+    df_students = pd.read_sql_query("SELECT * FROM students", conn)
+    df_grades = pd.read_sql_query("SELECT * FROM grades", conn)
+    conn.close()
+    
+    if not df_students.empty:
+        s_id = st.selectbox("اختر الطالب لاستخراج البطاقة", df_students['المعرف'].tolist())
+        student = df_students[df_students['المعرف'] == s_id].iloc[0]
+        grade_row = df_grades[df_grades['المعرف'] == s_id].iloc[0]
+        
+        st.markdown("---")
+        # تصميم شكل بطاقة الأعداد
+        st.markdown(f"""
+        <div style="border: 2px solid #2E86C1; padding: 20px; border-radius: 10px; background-color: #f9f9f9; color: #000;">
+            <h3 style="text-align: center; color: #2E86C1;">الرابطة الوطنية للقرآن الكريم - فرع المكناسي</h3>
+            <h4 style="text-align: center;">بطاقة أعداد الطالب</h4>
+            <hr>
+            <p><b>الاسم الكامل:</b> {student['الاسم_الثلاثي']} {student['اللقب']}</p>
+            <p><b>المستوى التعليمي:</b> {student['المستوى_التعليمي']} | <b>المرحلة:</b> {student['المرحلة']}</p>
+            <p><b>الوحدة الحالية:</b> {student['الوحدة']}</p>
+            <br>
+            <table style="width:100%; text-align: right; border-collapse: collapse;">
+                <tr>
+                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">الوحدة</th>
+                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">المعدل المسجل</th>
+                </tr>
+                <tr>
+                    <td style="padding: 8px;">الوحدة الأولى (u1)</td>
+                    <td style="padding: 8px;">{grade_row['u1']}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px;">الوحدة الثانية (u2)</td>
+                    <td style="padding: 8px;">{grade_row['u2']}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px;">الوحدة الثالثة (u3)</td>
+                    <td style="padding: 8px;">{grade_row['u3']}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px;">الوحدة الرابعة (u4)</td>
+                    <td style="padding: 8px;">{grade_row['u4']}</td>
+                </tr>
+            </table>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.info("💡 يمكنك الضغط على زر الطباعة في متصفحك (Ctrl + P) لطباعة هذه البطاقة مباشرة.")
+
 elif choice == "تغيير الضوارب":
     st.subheader("⚙️ تعديل الضوارب (المعاملات)")
     conn = get_db_connection()
@@ -131,8 +181,7 @@ elif choice == "حذف طالب":
 
 elif choice == "الإعدادات":
     st.subheader("🛠️ إعدادات النظام العامة")
-    st.info("هذه لوحة التحكم الخاصة بالإعدادات العامة للبرنامج وتتضمن حالياً ضبط المعاملات والضوارب الخاصة بالتقييم.")
-    # يمكن إضافة المزيد من إعدادات النظام هنا مستقبلاً
+    st.info("هذه لوحة التحكم الخاصة بالإعدادات العامة للبرنامج وتتضمن حالياً ضبط المعاملات والضوارب الخاصة بالتقييم واختبار الاتصال.")
     if st.button("التحقق من اتصال قاعدة البيانات"):
         conn = get_db_connection()
         st.success("✅ اتصال قاعدة البيانات يعمل بشكل سليم!")

@@ -30,8 +30,8 @@ st.set_page_config(page_title="نظام الرابطة", layout="wide", page_ico
 st.markdown("""<style>.stApp { direction: rtl !important; text-align: right !important; } [data-testid="stSidebar"] { direction: rtl !important; }</style>""", unsafe_allow_html=True)
 st.markdown("<h1 style='text-align: center;'>🕌 نظام الفرع المحلي للرابطة الوطنية للقرآن الكريم بالمكناسي</h1>", unsafe_allow_html=True)
 
-# --- 3. القائمة ---
-menu = ["تسجيل طالب جديد", "المتابعة البيداغوجية", "تغيير الضوارب", "حذف طالب"]
+# --- 3. القائمة (تمت إضافة الإعدادات) ---
+menu = ["تسجيل طالب جديد", "المتابعة البيداغوجية", "تغيير الضوارب", "حذف طالب", "الإعدادات"]
 choice = st.sidebar.selectbox("قائمة التحكم", menu)
 
 # --- 4. العمليات ---
@@ -128,3 +128,12 @@ elif choice == "حذف طالب":
             conn.close()
             st.error("⚠️ تم حذف الطالب وجميع بياناته بنجاح!")
             st.rerun()
+
+elif choice == "الإعدادات":
+    st.subheader("🛠️ إعدادات النظام العامة")
+    st.info("هذه لوحة التحكم الخاصة بالإعدادات العامة للبرنامج وتتضمن حالياً ضبط المعاملات والضوارب الخاصة بالتقييم.")
+    # يمكن إضافة المزيد من إعدادات النظام هنا مستقبلاً
+    if st.button("التحقق من اتصال قاعدة البيانات"):
+        conn = get_db_connection()
+        st.success("✅ اتصال قاعدة البيانات يعمل بشكل سليم!")
+        conn.close()

@@ -30,7 +30,7 @@ st.set_page_config(page_title="نظام الرابطة", layout="wide", page_ico
 st.markdown("""<style>.stApp { direction: rtl !important; text-align: right !important; } [data-testid="stSidebar"] { direction: rtl !important; }</style>""", unsafe_allow_html=True)
 st.markdown("<h1 style='text-align: center;'>🕌 نظام الفرع المحلي للرابطة الوطنية للقرآن الكريم بالمكناسي</h1>", unsafe_allow_html=True)
 
-# --- 3. القائمة (تمت إضافة بطاقة الأعداد) ---
+# --- 3. القائمة ---
 menu = ["تسجيل طالب جديد", "المتابعة البيداغوجية", "بطاقة الأعداد", "تغيير الضوارب", "حذف طالب", "الإعدادات"]
 choice = st.sidebar.selectbox("قائمة التحكم", menu)
 
@@ -89,12 +89,15 @@ elif choice == "المتابعة البيداغوجية":
             # حساب المعدل
             avg = (hifz*w['w_hifz'] + riwaya*w['w_riwaya'] + diraya*w['w_diraya'] + hodoor*w['w_hodoor']) / (w['w_hifz'] + w['w_riwaya'] + w['w_diraya'] + w['w_hodoor'])
             
-            conn.execute(f"UPDATE grades SET u{row['الوحدة']}=? WHERE المعرف=?", (avg, s_id))
-            if avg >= 10:
-                conn.execute("UPDATE students SET الوحدة=? WHERE المعرف=?", (row['الوحدة'] + 1, s_id))
+            unit_col = f"u{row['الوحدة']}"
+            conn.execute(f"UPDATE grades SET {unit_col} = ? WHERE المعرف = ?", (avg, s_id))
+            
+            if avg >= 10 and row['الوحدة'] < 4:
+                conn.execute("UPDATE students SET الوحدة = الوحدة + 1 WHERE المعرف = ?", (s_id,))
                 st.success(f"🎉 تم الارتقاء! المعدل هو: {avg:.2f}")
             else:
-                st.warning(f"⚠️ المعدل {avg:.2f} غير كافٍ للارتقاء.")
+                st.info(f"📌 تم تسجيل المعدل بنجاح ({avg:.2f}).")
+                
             conn.commit()
             conn.close()
 
@@ -111,7 +114,6 @@ elif choice == "بطاقة الأعداد":
         grade_row = df_grades[df_grades['المعرف'] == s_id].iloc[0]
         
         st.markdown("---")
-        # تصميم شكل بطاقة الأعداد
         st.markdown(f"""
         <div style="border: 2px solid #2E86C1; padding: 20px; border-radius: 10px; background-color: #f9f9f9; color: #000;">
             <h3 style="text-align: center; color: #2E86C1;">الرابطة الوطنية للقرآن الكريم - فرع المكناسي</h3>
@@ -145,7 +147,6 @@ elif choice == "بطاقة الأعداد":
             </table>
         </div>
         """, unsafe_allow_html=True)
-        
         st.info("💡 يمكنك الضغط على زر الطباعة في متصفحك (Ctrl + P) لطباعة هذه البطاقة مباشرة.")
 
 elif choice == "تغيير الضوارب":

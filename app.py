@@ -2,9 +2,6 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 
-# --- شعار الرابطة (رابط مباشر موثوق يظهر على السحابة) ---
-logo_html = '<img src="https://i.ibb.co/3s688Z3/logo.jpg" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 2px solid #2E86C1;" />'
-
 # --- 1. إعداد قاعدة البيانات وتحديث الجداول تلقائياً ---
 def get_db_connection():
     return sqlite3.connect('quran_data.db')
@@ -13,28 +10,27 @@ def init_db():
     conn = get_db_connection()
     c = conn.cursor()
     
-    # إنشاء جدول الطلاب إذا لم يكن موجوداً
+    # إنشاء جدول الطلاب
     c.execute('''CREATE TABLE IF NOT EXISTS students 
                  (المعرف INTEGER PRIMARY KEY AUTOINCREMENT, الاسم_الثلاثي TEXT, اللقب TEXT, 
                   تاريخ_الولادة TEXT, بطاقة_التعريف TEXT, المهنة TEXT, المستوى_التعليمي TEXT, المرحلة TEXT, الوحدة INTEGER, رقم_الترسيم TEXT, المرسم_ب TEXT, المركز TEXT)''')
     
-    # إنشاء جدول الدرجات إذا لم يكن موجوداً
+    # إنشاء جدول الدرجات
     c.execute('''CREATE TABLE IF NOT EXISTS grades 
                  (المعرف INTEGER PRIMARY KEY, u1 REAL, u2 REAL, u3 REAL, u4 REAL, 
                   hifz_d REAL DEFAULT 0, riwaya_d REAL DEFAULT 0, diraya_d REAL DEFAULT 0, hodoor_d REAL DEFAULT 0,
                   diraya_kitabya REAL DEFAULT 0, mowadaba REAL DEFAULT 0, taqeem_mudarris REAL DEFAULT 0, diraya_shafowya REAL DEFAULT 0)''')
     
-    # إنشاء جدول الإعدادات إذا لم يكن موجوداً
+    # إنشاء جدول الإعدادات
     c.execute('''CREATE TABLE IF NOT EXISTS settings 
                  (id INTEGER PRIMARY KEY, w_hifz REAL, w_riwaya REAL, w_diraya REAL, w_hodoor REAL,
                   w_diraya_kitabya REAL DEFAULT 2.0, w_mowadaba REAL DEFAULT 1.0, w_taqeem_mudarris REAL DEFAULT 1.0, w_hifz_item REAL DEFAULT 1.0, w_diraya_shafowya REAL DEFAULT 1.0)''')
     
-    # إدراج الصف الافتراضي في الإعدادات إذا كان فارغاً
     c.execute("SELECT count(*) FROM settings")
     if c.fetchone()[0] == 0:
         c.execute("INSERT INTO settings (id, w_hifz, w_riwaya, w_diraya, w_hodoor, w_diraya_kitabya, w_mowadaba, w_taqeem_mudarris, w_hifz_item, w_diraya_shafowya) VALUES (1, 3.0, 2.0, 2.0, 1.0, 2.0, 1.0, 1.0, 1.0, 1.0)")
     
-    # التحقق من وجود الأعمدة الجديدة في جدول settings وإضافتها تلقائياً إن لم تكن موجودة (لتفادي أي خطأ قديم)
+    # التحقق من الأعمدة الناقصة وإضافتها
     cursor = c.execute("PRAGMA table_info(settings)")
     existing_columns = [column[1] for column in cursor.fetchall()]
     
@@ -55,18 +51,24 @@ def init_db():
 
 init_db()
 
-# --- 2. التنسيق ---
+# --- 2. التنسيق العام ---
 st.set_page_config(page_title="نظام الرابطة", layout="wide", page_icon="🕌")
-st.markdown("""<style>.stApp { direction: rtl !important; text-align: right !important; } [data-testid="stSidebar"] { direction: rtl !important; }</style>""", unsafe_allow_html=True)
+st.markdown("""
+<style>
+    .stApp { direction: rtl !important; text-align: right !important; }
+    [data-testid="stSidebar"] { direction: rtl !important; }
+</style>
+""", unsafe_allow_html=True)
+
 st.markdown("<h1 style='text-align: center;'>🕌 نظام الفرع المحلي للرابطة الوطنية للقرآن الكريم بالمكناسي</h1>", unsafe_allow_html=True)
 
-# --- 3. القائمة ---
+# --- 3. القائمة الجانبية ---
 menu = ["تسجيل طالب جديد", "المتابعة البيداغوجية", "بطاقة الأعداد", "تغيير الضوارب", "حذف طالب", "الإعدادات"]
 choice = st.sidebar.selectbox("قائمة التحكم", menu)
 
 # --- 4. العمليات ---
 if choice == "تسجيل طالب جديد":
-    st.markdown("<div style='text-align: center;'><h2 style='color: #2E86C1;'>📝 استمارة تسجيل طالب جديد</h2></div>", unsafe_allow_html=True)
+    st.markdown("<h2 style='color: #2E86C1; text-align: center;'>📝 استمارة تسجيل طالب جديد</h2>", unsafe_allow_html=True)
     
     with st.form("student_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
@@ -120,8 +122,8 @@ elif choice == "المتابعة البيداغوجية":
         s_unit = row.get('الوحدة', 1)
         
         st.write(f"الطالب: {s_name} {s_last} | الوحدة الحالية: {s_unit}")
-        
         st.markdown("---")
+        
         col1, col2 = st.columns(2)
         diraya_kitabya = col1.number_input("دراية كتابيا (عدد من 20)", 0.0, 20.0, value=0.0)
         mowadaba = col2.number_input("المواظبة (عدد من 20)", 0.0, 20.0, value=0.0)
@@ -196,7 +198,6 @@ elif choice == "بطاقة الأعداد":
         
         total_weights = w_dk + w_mw + w_tm + w_hf + w_ds
         total_scores = h_dk + h_mw + h_tm + h_hf + h_ds
-        
         current_avg = total_scores / total_weights if total_weights > 0 else 0.0
         
         result_status = "يرتقي" if current_avg >= 10 else "لا يرتقي"
@@ -212,9 +213,11 @@ elif choice == "بطاقة الأعداد":
         else:
             note = "حسن جدا"
 
+        logo_html = '<img src="https://i.ibb.co/3s688Z3/logo.jpg" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 2px solid #2E86C1;" />'
+
         st.markdown("---")
-        st.markdown(f"""
-        <div style="border: 2px solid #333; padding: 30px; border-radius: 5px; background-color: #ffffff; color: #000; font-family: 'Amiri', Tahoma, sans-serif; max-width: 800px; margin: auto;">
+        card_html = f"""
+        <div style="border: 2px solid #333; padding: 30px; border-radius: 5px; background-color: #ffffff; color: #000; font-family: Tahoma, sans-serif; max-width: 800px; margin: auto;">
             
             <table style="width: 100%; border: none; margin-bottom: 20px;">
                 <tr>
@@ -318,7 +321,9 @@ elif choice == "بطاقة الأعداد":
                                 <td style="border: 1px solid #333; padding: 18px; font-size: 22px; font-weight: bold;">{current_avg:.2f}</td>
                             </tr>
                         </table>
-                        <br>
+                    </td>
+                    <td style="width: 4%;"></td>
+                    <td style="width: 48%; vertical-align: top;">
                         <table style="width: 100%; border-collapse: collapse; text-align: center;">
                             <tr>
                                 <td style="border: 1px solid #333; padding: 8px; font-size: 13px; background-color: #f8f9fa;">المعدل العام /20</td>
@@ -328,8 +333,6 @@ elif choice == "بطاقة الأعداد":
                             </tr>
                         </table>
                     </td>
-                    <td style="width: 4%;"></td>
-                    <td style="width: 48%; vertical-align: middle;"></td>
                 </tr>
             </table>
 
@@ -342,7 +345,8 @@ elif choice == "بطاقة الأعداد":
             </table>
 
         </div>
-        """, unsafe_allow_html=True)
+        """
+        st.markdown(card_html, unsafe_allow_html=True)
         st.info("💡 يمكنك الضغط على زر الطباعة في متصفحك (Ctrl + P) لطباعة هذه البطاقة مباشرة.")
 
 elif choice == "تغيير الضوارب":

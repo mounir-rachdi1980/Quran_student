@@ -249,14 +249,7 @@ elif choice == "بطاقة الأعداد":
         else:
             note = "حسن جدا"
 
-        logo_url = "https://i.ibb.co/3s688Z3/logo.jpg"
-
         st.markdown("---")
-        
-        # عرض الشعار بشكل منفصل وآمن لتفادي مشاكل التداخل
-        col_logo1, col_logo2, col_logo3 = st.columns([1, 1, 1])
-        with col_logo2:
-            st.image(logo_url, width=70)
 
         card_html = f"""
         <div style="border: 2px solid #333; padding: 30px; border-radius: 5px; background-color: #ffffff; color: #000; font-family: Tahoma, sans-serif; max-width: 800px; margin: auto;">

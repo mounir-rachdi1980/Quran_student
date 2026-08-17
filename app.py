@@ -249,23 +249,27 @@ elif choice == "بطاقة الأعداد":
         else:
             note = "حسن جدا"
 
-        logo_html = '<img src="https://i.ibb.co/3s688Z3/logo.jpg" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 2px solid #2E86C1;" />'
+        logo_url = "https://i.ibb.co/3s688Z3/logo.jpg"
 
         st.markdown("---")
+        
+        # عرض الشعار بشكل منفصل وآمن لتفادي مشاكل التداخل
+        col_logo1, col_logo2, col_logo3 = st.columns([1, 1, 1])
+        with col_logo2:
+            st.image(logo_url, width=70)
+
         card_html = f"""
         <div style="border: 2px solid #333; padding: 30px; border-radius: 5px; background-color: #ffffff; color: #000; font-family: Tahoma, sans-serif; max-width: 800px; margin: auto;">
             
             <table style="width: 100%; border: none; margin-bottom: 20px;">
                 <tr>
-                    <td style="width: 30%; text-align: right; vertical-align: top; font-size: 13px; line-height: 1.6;">
+                    <td style="width: 40%; text-align: right; vertical-align: top; font-size: 13px; line-height: 1.6;">
                         <b>الجمهورية التونسية</b><br>
                         الجمعية المحافظة على القرآن الكريم والأخلاق الفاضلة بصفاقس<br>
                         (القراءات)
                     </td>
-                    <td style="width: 40%; text-align: center; vertical-align: middle;">
-                        {logo_html}
-                    </td>
-                    <td style="width: 30%; text-align: left; vertical-align: top; font-size: 13px; line-height: 1.6;">
+                    <td style="width: 20%;"></td>
+                    <td style="width: 40%; text-align: left; vertical-align: top; font-size: 13px; line-height: 1.6;">
                         الحمد لله وحده<br>
                         صفاقس في 13 محرم 1448<br>
                         الموافق لـ: 28 جوان 2026<br>

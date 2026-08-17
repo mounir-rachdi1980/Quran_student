@@ -86,13 +86,14 @@ elif choice == "المتابعة البيداغوجية":
         hifz = col1.number_input("درجة الحفظ", 0.0, 20.0)
         riwaya = col2.number_input("درجة الرواية", 0.0, 20.0)
         diraya = col1.number_input("درجة الدراية", 0.0, 20.0)
-        hodoor = col2.number_input("درجة المواظبة", 0.0, 20.0)
+        hodoor = col2.number_input("درجة الحضور", 0.0, 20.0)
         
         if st.button("تحديث الدرجات والارتقاء"):
             conn = get_db_connection()
             w = pd.read_sql_query("SELECT * FROM settings WHERE id=1", conn).iloc[0]
-            # حساب المعدل
-            avg = (hifz*w['w_hifz'] + riwaya*w['w_riwaya'] + diraya*w['w_diraya'] + hodoor*w['w_hodoor']) / (w['w_hifz'] + w['w_riwaya'] + w['w_diraya'] + w['w_hodoor'])
+            # حساب المعدل بناءً على الحفظ، الرواية، الدراية، والحضور
+            total_weights = w['w_hifz'] + w['w_riwaya'] + w['w_diraya'] + w['w_hodoor']
+            avg = (hifz * w['w_hifz'] + riwaya * w['w_riwaya'] + diraya * w['w_diraya'] + hodoor * w['w_hodoor']) / total_weights
             
             unit_col = f"u{row['الوحدة']}"
             conn.execute(f"UPDATE grades SET {unit_col} = ? WHERE المعرف = ?", (avg, s_id))
@@ -162,11 +163,11 @@ elif choice == "تغيير الضوارب":
         w1 = st.number_input("ضارب الحفظ", value=float(w['w_hifz']))
         w2 = st.number_input("ضارب الرواية", value=float(w['w_riwaya']))
         w3 = st.number_input("ضارب الدراية", value=float(w['w_diraya']))
-        w4 = st.number_input("ضارب المواظبة", value=float(w['w_hodoor']))
+        w4 = st.number_input("ضارب الحضور", value=float(w['w_hodoor']))
         if st.form_submit_button("حفظ الضوارب"):
             conn.execute("UPDATE settings SET w_hifz=?, w_riwaya=?, w_diraya=?, w_hodoor=? WHERE id=1", (w1, w2, w3, w4))
             conn.commit()
-            st.success("✅ تم تحديث الضوارب!")
+            st.success("✅ تم تحديث الضوارب بنجاح!")
     conn.close()
 
 elif choice == "حذف طالب":

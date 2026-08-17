@@ -5,27 +5,51 @@ import sqlite3
 # --- شعار الرابطة (رابط مباشر موثوق يظهر على السحابة) ---
 logo_html = '<img src="https://i.ibb.co/3s688Z3/logo.jpg" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 2px solid #2E86C1;" />'
 
-# --- 1. إعداد قاعدة البيانات ---
+# --- 1. إعداد قاعدة البيانات وتحديث الجداول تلقائياً ---
 def get_db_connection():
     return sqlite3.connect('quran_data.db')
 
 def init_db():
     conn = get_db_connection()
     c = conn.cursor()
+    
+    # إنشاء جدول الطلاب إذا لم يكن موجوداً
     c.execute('''CREATE TABLE IF NOT EXISTS students 
                  (المعرف INTEGER PRIMARY KEY AUTOINCREMENT, الاسم_الثلاثي TEXT, اللقب TEXT, 
                   تاريخ_الولادة TEXT, بطاقة_التعريف TEXT, المهنة TEXT, المستوى_التعليمي TEXT, المرحلة TEXT, الوحدة INTEGER, رقم_الترسيم TEXT, المرسم_ب TEXT, المركز TEXT)''')
+    
+    # إنشاء جدول الدرجات إذا لم يكن موجوداً
     c.execute('''CREATE TABLE IF NOT EXISTS grades 
                  (المعرف INTEGER PRIMARY KEY, u1 REAL, u2 REAL, u3 REAL, u4 REAL, 
                   hifz_d REAL DEFAULT 0, riwaya_d REAL DEFAULT 0, diraya_d REAL DEFAULT 0, hodoor_d REAL DEFAULT 0,
                   diraya_kitabya REAL DEFAULT 0, mowadaba REAL DEFAULT 0, taqeem_mudarris REAL DEFAULT 0, diraya_shafowya REAL DEFAULT 0)''')
+    
+    # إنشاء جدول الإعدادات إذا لم يكن موجوداً
     c.execute('''CREATE TABLE IF NOT EXISTS settings 
                  (id INTEGER PRIMARY KEY, w_hifz REAL, w_riwaya REAL, w_diraya REAL, w_hodoor REAL,
                   w_diraya_kitabya REAL DEFAULT 2.0, w_mowadaba REAL DEFAULT 1.0, w_taqeem_mudarris REAL DEFAULT 1.0, w_hifz_item REAL DEFAULT 1.0, w_diraya_shafowya REAL DEFAULT 1.0)''')
     
+    # إدراج الصف الافتراضي في الإعدادات إذا كان فارغاً
     c.execute("SELECT count(*) FROM settings")
     if c.fetchone()[0] == 0:
         c.execute("INSERT INTO settings (id, w_hifz, w_riwaya, w_diraya, w_hodoor, w_diraya_kitabya, w_mowadaba, w_taqeem_mudarris, w_hifz_item, w_diraya_shafowya) VALUES (1, 3.0, 2.0, 2.0, 1.0, 2.0, 1.0, 1.0, 1.0, 1.0)")
+    
+    # التحقق من وجود الأعمدة الجديدة في جدول settings وإضافتها تلقائياً إن لم تكن موجودة (لتفادي أي خطأ قديم)
+    cursor = c.execute("PRAGMA table_info(settings)")
+    existing_columns = [column[1] for column in cursor.fetchall()]
+    
+    columns_to_add = {
+        'w_diraya_kitabya': 'REAL DEFAULT 2.0',
+        'w_mowadaba': 'REAL DEFAULT 1.0',
+        'w_taqeem_mudarris': 'REAL DEFAULT 1.0',
+        'w_hifz_item': 'REAL DEFAULT 1.0',
+        'w_diraya_shafowya': 'REAL DEFAULT 1.0'
+    }
+    
+    for col, col_type in columns_to_add.items():
+        if col not in existing_columns:
+            c.execute(f"ALTER TABLE settings ADD COLUMN {col} {col_type}")
+
     conn.commit()
     conn.close()
 
@@ -109,8 +133,6 @@ elif choice == "المتابعة البيداغوجية":
             conn = get_db_connection()
             w = pd.read_sql_query("SELECT * FROM settings WHERE id=1", conn).iloc[0]
             
-            # حساب المجاميع حسب النموذج الجديد
-            # دراية كتابيا (الضارب افتراضياً 2)
             h_dk = diraya_kitabya * w['w_diraya_kitabya']
             h_mw = mowadaba * w['w_mowadaba']
             h_tm = taqeem_mudarris * w['w_taqeem_mudarris']
@@ -154,21 +176,18 @@ elif choice == "بطاقة الأعداد":
         morsam_b = student.get('المرسم_ب', 'غير متوفر')
         markaz = student.get('المركز', 'غير متوفر')
         
-        # الدرجات
         dk = grade_row.get('diraya_kitabya', 0.0)
         mw = grade_row.get('mowadaba', 0.0)
         tm = grade_row.get('taqeem_mudarris', 0.0)
         hf = grade_row.get('hifz_d', 0.0)
         ds = grade_row.get('diraya_shafowya', 0.0)
         
-        # الضوارب
         w_dk = df_settings['w_diraya_kitabya']
         w_mw = df_settings['w_mowadaba']
         w_tm = df_settings['w_taqeem_mudarris']
         w_hf = df_settings['w_hifz_item']
         w_ds = df_settings['w_diraya_shafowya']
         
-        # الحاصل = العدد × الضارب
         h_dk = dk * w_dk
         h_mw = mw * w_mw
         h_tm = tm * w_tm
@@ -194,11 +213,9 @@ elif choice == "بطاقة الأعداد":
             note = "حسن جدا"
 
         st.markdown("---")
-        # تصميم مطابق للصورة تماماً
         st.markdown(f"""
         <div style="border: 2px solid #333; padding: 30px; border-radius: 5px; background-color: #ffffff; color: #000; font-family: 'Amiri', Tahoma, sans-serif; max-width: 800px; margin: auto;">
             
-            <!-- رأس الصفحة -->
             <table style="width: 100%; border: none; margin-bottom: 20px;">
                 <tr>
                     <td style="width: 30%; text-align: right; vertical-align: top; font-size: 13px; line-height: 1.6;">
@@ -218,14 +235,12 @@ elif choice == "بطاقة الأعداد":
                 </tr>
             </table>
 
-            <!-- عنوان البطاقة -->
             <div style="text-align: center; margin: 20px 0;">
                 <div style="display: inline-block; border: 2px solid #333; padding: 8px 30px; border-radius: 8px; font-size: 20px; font-weight: bold;">
                     بطاقة الاعداد
                 </div>
             </div>
 
-            <!-- معلومات الطالب -->
             <table style="width: 100%; border: none; margin-bottom: 20px; font-size: 15px;">
                 <tr>
                     <td style="width: 50%;"><b>الاسم واللقب:</b> {s_name} {s_last}</td>
@@ -237,7 +252,6 @@ elif choice == "بطاقة الأعداد":
                 </tr>
             </table>
 
-            <!-- جدول الاختبارات -->
             <table style="width: 100%; border-collapse: collapse; text-align: center; margin-bottom: 25px; font-size: 14px;">
                 <thead>
                     <tr style="background-color: #f8f9fa;">
@@ -293,7 +307,6 @@ elif choice == "بطاقة الأعداد":
                 </tbody>
             </table>
 
-            <!-- المعدلات والنتيجة -->
             <table style="width: 100%; border: none; margin-bottom: 20px;">
                 <tr>
                     <td style="width: 48%; vertical-align: top;">
@@ -316,13 +329,10 @@ elif choice == "بطاقة الأعداد":
                         </table>
                     </td>
                     <td style="width: 4%;"></td>
-                    <td style="width: 48%; vertical-align: middle;">
-                        <!-- فارغ لتنظيم الشكل تماماً مثل الصورة -->
-                    </td>
+                    <td style="width: 48%; vertical-align: middle;"></td>
                 </tr>
             </table>
 
-            <!-- النتيجة والملاحظة -->
             <table style="width: 100%; border-collapse: collapse; text-align: right; font-size: 15px;">
                 <tr>
                     <td style="border: 1px solid #333; padding: 12px;">
@@ -333,7 +343,7 @@ elif choice == "بطاقة الأعداد":
 
         </div>
         """, unsafe_allow_html=True)
-        st.info("💡 يمكنك الضغط على زر الطباعة في متصفحك (Ctrl + P) لطباعة هذه البطاقة مباشرة بنفس تنسيق الورقة الرسمية.")
+        st.info("💡 يمكنك الضغط على زر الطباعة في متصفحك (Ctrl + P) لطباعة هذه البطاقة مباشرة.")
 
 elif choice == "تغيير الضوارب":
     st.subheader("⚙️ تعديل ضوارب الاختبارات")

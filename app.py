@@ -13,7 +13,8 @@ def init_db():
                  (المعرف INTEGER PRIMARY KEY AUTOINCREMENT, الاسم_الثلاثي TEXT, اللقب TEXT, 
                   تاريخ_الولادة TEXT, بطاقة_التعريف TEXT, المهنة TEXT, المستوى_التعليمي TEXT, المرحلة TEXT, الوحدة INTEGER)''')
     c.execute('''CREATE TABLE IF NOT EXISTS grades 
-                 (المعرف INTEGER PRIMARY KEY, u1 REAL, u2 REAL, u3 REAL, u4 REAL)''')
+                 (المعرف INTEGER PRIMARY KEY, u1 REAL, u2 REAL, u3 REAL, u4 REAL, 
+                  hifz_d REAL DEFAULT 0, riwaya_d REAL DEFAULT 0, diraya_d REAL DEFAULT 0, hodoor_d REAL DEFAULT 0)''')
     c.execute('''CREATE TABLE IF NOT EXISTS settings 
                  (id INTEGER PRIMARY KEY, w_hifz REAL, w_riwaya REAL, w_diraya REAL, w_hodoor REAL)''')
     
@@ -65,7 +66,7 @@ if choice == "تسجيل طالب جديد":
         c = conn.cursor()
         c.execute("INSERT INTO students (الاسم_الثلاثي, اللقب, تاريخ_الولادة, بطاقة_التعريف, المهنة, المستوى_التعليمي, المرحلة, الوحدة) VALUES (?,?,?,?,?,?,?,?)", 
                   (name, last_name, str(dob), cin, job, edu_level, stage, int(unit)))
-        c.execute("INSERT INTO grades (المعرف, u1, u2, u3, u4) VALUES (?,0,0,0,0)", (c.lastrowid,))
+        c.execute("INSERT INTO grades (المعرف, u1, u2, u3, u4, hifz_d, riwaya_d, diraya_d, hodoor_d) VALUES (?,0,0,0,0,0,0,0,0)", (c.lastrowid,))
         conn.commit()
         conn.close()
         st.success(f"✅ تم تسجيل الطالب بنجاح! (المعرف ID: {c.lastrowid})")
@@ -96,7 +97,9 @@ elif choice == "المتابعة البيداغوجية":
             avg = (hifz * w['w_hifz'] + riwaya * w['w_riwaya'] + diraya * w['w_diraya'] + hodoor * w['w_hodoor']) / total_weights
             
             unit_col = f"u{row['الوحدة']}"
-            conn.execute(f"UPDATE grades SET {unit_col} = ? WHERE المعرف = ?", (avg, s_id))
+            # حفظ الدرجات الحالية في الجدول أيضاً لاستخدامها في البطاقة
+            conn.execute(f"UPDATE grades SET {unit_col} = ?, hifz_d = ?, riwaya_d = ?, diraya_d = ?, hodoor_d = ? WHERE المعرف = ?", 
+                        (avg, hifz, riwaya, diraya, hodoor, s_id))
             
             if avg >= 10 and row['الوحدة'] < 4:
                 conn.execute("UPDATE students SET الوحدة = الوحدة + 1 WHERE المعرف = ?", (s_id,))
@@ -111,13 +114,35 @@ elif choice == "بطاقة الأعداد":
     st.subheader("📄 استخراج بطاقة أعداد طالب")
     conn = get_db_connection()
     df_students = pd.read_sql_query("SELECT * FROM students", conn)
+    df_grades = pd.read_sql_query("SELECT * FROM grades", conn)
     df_settings = pd.read_sql_query("SELECT * FROM settings WHERE id=1", conn).iloc[0]
     conn.close()
     
     if not df_students.empty:
         s_id = st.selectbox("اختر الطالب لاستخراج البطاقة", df_students['المعرف'].tolist())
         student = df_students[df_students['المعرف'] == s_id].iloc[0]
+        grade_row = df_grades[df_grades['المعرف'] == s_id].iloc[0]
         
+        # استخراج المعدل الخاص بالوحدة الحالية للطالب لعرضه في النتيجة
+        current_unit_col = f"u{student['الوحدة']}"
+        current_avg = grade_row[current_unit_col] if current_unit_col in grade_row else 0.0
+        
+        # تحديد النتيجة والقرار
+        result_status = "ارتقاء" if current_avg >= 10 else "رسوب"
+        result_color = "#27AE60" if current_avg >= 10 else "#C0392B"
+        
+        # تحديد الملاحظة حسب المعدل
+        if current_avg < 10:
+            note = "متوسط"
+        elif 10 <= current_avg < 12:
+            note = "فوق المتوسط"
+        elif 12 <= current_avg < 14:
+            note = "قريب من الحسن"
+        elif 14 <= current_avg < 16:
+            note = "حسن"
+        else:
+            note = "حسن جدا"
+
         st.markdown("---")
         st.markdown(f"""
         <div style="border: 2px solid #2E86C1; padding: 20px; border-radius: 10px; background-color: #f9f9f9; color: #000;">
@@ -130,26 +155,37 @@ elif choice == "بطاقة الأعداد":
             <br>
             <table style="width:100%; text-align: right; border-collapse: collapse;">
                 <tr>
-                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">مكونات التقييم الأساسية</th>
+                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">مكونات التقييم</th>
+                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">إعداد المواد (الدرجة)</th>
                     <th style="border-bottom: 1px solid #ddd; padding: 8px;">الضارب (المعامل)</th>
                 </tr>
                 <tr>
                     <td style="padding: 8px;">الحفظ</td>
+                    <td style="padding: 8px;">{grade_row['hifz_d']}</td>
                     <td style="padding: 8px;">{df_settings['w_hifz']}</td>
                 </tr>
                 <tr>
                     <td style="padding: 8px;">الرواية</td>
+                    <td style="padding: 8px;">{grade_row['riwaya_d']}</td>
                     <td style="padding: 8px;">{df_settings['w_riwaya']}</td>
                 </tr>
                 <tr>
                     <td style="padding: 8px;">الدراية</td>
+                    <td style="padding: 8px;">{grade_row['diraya_d']}</td>
                     <td style="padding: 8px;">{df_settings['w_diraya']}</td>
                 </tr>
                 <tr>
                     <td style="padding: 8px;">الحضور</td>
+                    <td style="padding: 8px;">{grade_row['hodoor_d']}</td>
                     <td style="padding: 8px;">{df_settings['w_hodoor']}</td>
                 </tr>
             </table>
+            <br>
+            <div style="border-top: 2px dashed #2E86C1; padding-top: 15px; margin-top: 10px; text-align: center;">
+                <p style="font-size: 18px;"><b>المعدل العام للوحدة:</b> <span style="color: #2E86C1;">{current_avg:.2f} / 20</span></p>
+                <p style="font-size: 18px;"><b>النتيجة النهائية:</b> <span style="color: {result_color}; font-weight: bold;">{result_status}</span></p>
+                <p style="font-size: 18px;"><b>الملاحظة:</b> <span style="color: #8E44AD; font-weight: bold;">{note}</span></p>
+            </div>
         </div>
         """, unsafe_allow_html=True)
         st.info("💡 يمكنك الضغط على زر الطباعة في متصفحك (Ctrl + P) لطباعة هذه البطاقة مباشرة.")

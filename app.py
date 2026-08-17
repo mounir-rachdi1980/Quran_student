@@ -122,7 +122,6 @@ elif choice == "بطاقة الأعداد":
         student = df_students[df_students['المعرف'] == s_id].iloc[0]
         grade_row = df_grades[df_grades['المعرف'] == s_id].iloc[0]
         
-        # حساب المعدل بشكل دقيق بناءً على الدرجات المخزنة والضوارب الحالية
         h_d = grade_row['hifz_d']
         r_d = grade_row['riwaya_d']
         d_d = grade_row['diraya_d']
@@ -139,11 +138,9 @@ elif choice == "بطاقة الأعداد":
         else:
             current_avg = 0.0
         
-        # تحديد النتيجة والقرار
         result_status = "ارتقاء" if current_avg >= 10 else "رسوب"
         result_color = "#27AE60" if current_avg >= 10 else "#C0392B"
         
-        # تحديد الملاحظة حسب المعدل
         if current_avg < 10:
             note = "متوسط"
         elif 10 <= current_avg < 12:
@@ -157,46 +154,54 @@ elif choice == "بطاقة الأعداد":
 
         st.markdown("---")
         st.markdown(f"""
-        <div style="border: 2px solid #2E86C1; padding: 20px; border-radius: 10px; background-color: #f9f9f9; color: #000;">
-            <h3 style="text-align: center; color: #2E86C1;">الرابطة الوطنية للقرآن الكريم - فرع المكناسي</h3>
-            <h4 style="text-align: center;">بطاقة أعداد الطالب</h4>
-            <hr>
-            <p><b>الاسم الكامل:</b> {student['الاسم_الثلاثي']} {student['اللقب']}</p>
-            <p><b>المستوى التعليمي:</b> {student['المستوى_التعليمي']} | <b>المرحلة:</b> {student['المرحلة']}</p>
-            <p><b>الوحدة الحالية:</b> {student['الوحدة']}</p>
+        <div style="border: 2px solid #2E86C1; padding: 25px; border-radius: 12px; background-color: #ffffff; color: #000; font-family: Tahoma, sans-serif;">
+            <div style="text-align: center;">
+                <h3 style="color: #2E86C1; font-size: 22px; font-weight: bold; margin-bottom: 5px;">الرابطة الوطنية للقرآن الكريم - فرع المكناسي</h3>
+                <h4 style="color: #555; font-size: 18px; font-weight: bold; margin-top: 0;">بطاقة أعداد الطالب</h4>
+            </div>
+            <hr style="border: 0.5px solid #ccc; margin: 15px 0;">
+            <div style="font-size: 16px; line-height: 1.8;">
+                <p><b>الاسم الكامل:</b> <span style="font-weight: bold; color: #111;">{student['الاسم_الثلاثي']} {student['اللقب']}</span></p>
+                <p><b>المستوى التعليمي:</b> {student['المستوى_التعليمي']} &nbsp;|&nbsp; <b>المرحلة:</b> {student['المرحلة']}</p>
+                <p><b>الوحدة الحالية:</b> {student['الوحدة']}</p>
+            </div>
             <br>
-            <table style="width:100%; text-align: right; border-collapse: collapse;">
-                <tr>
-                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">مكونات التقييم</th>
-                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">إعداد المواد (الدرجة)</th>
-                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">الضارب (المعامل)</th>
-                </tr>
-                <tr>
-                    <td style="padding: 8px;">الحفظ</td>
-                    <td style="padding: 8px;">{h_d}</td>
-                    <td style="padding: 8px;">{w_h}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 8px;">الرواية</td>
-                    <td style="padding: 8px;">{r_d}</td>
-                    <td style="padding: 8px;">{w_r}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 8px;">الدراية</td>
-                    <td style="padding: 8px;">{d_d}</td>
-                    <td style="padding: 8px;">{w_d}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 8px;">الحضور</td>
-                    <td style="padding: 8px;">{hd_d}</td>
-                    <td style="padding: 8px;">{w_hd}</td>
-                </tr>
+            <table style="width:100%; text-align: right; border-collapse: collapse; font-size: 15px;">
+                <thead>
+                    <tr style="background-color: #f2f2f2;">
+                        <th style="border: 1px solid #ddd; padding: 10px;">مكونات التقييم</th>
+                        <th style="border: 1px solid #ddd; padding: 10px;">إعداد المواد (الدرجة)</th>
+                        <th style="border: 1px solid #ddd; padding: 10px;">الضارب (المعامل)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 8px;">الحفظ</td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">{h_d}</td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">{w_h}</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 8px;">الرواية</td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">{r_d}</td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">{w_r}</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 8px;">الدراية</td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">{d_d}</td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">{w_d}</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 8px;">الحضور</td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">{hd_d}</td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">{w_hd}</td>
+                    </tr>
+                </tbody>
             </table>
             <br>
-            <div style="text-align: center;">
-                <p style="font-size: 18px;"><b>المعدل العام للوحدة:</b> <span style="color: #2E86C1;">{current_avg:.2f} / 20</span></p>
-                <p style="font-size: 18px;"><b>النتيجة النهائية:</b> <span style="color: {result_color}; font-weight: bold;">{result_status}</span></p>
-                <p style="font-size: 18px;"><b>الملاحظة:</b> <span style="color: #8E44AD; font-weight: bold;">{note}</span></p>
+            <div style="text-align: center; background-color: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px dashed #2E86C1;">
+                <p style="font-size: 17px; margin: 5px 0;"><b>المعدل العام للوحدة:</b> <span style="color: #2E86C1; font-weight: bold; font-size: 19px;">{current_avg:.2f} / 20</span></p>
+                <p style="font-size: 17px; margin: 5px 0;"><b>النتيجة النهائية:</b> <span style="color: {result_color}; font-weight: bold; font-size: 19px;">{result_status}</span></p>
+                <p style="font-size: 17px; margin: 5px 0;"><b>الملاحظة:</b> <span style="color: #8E44AD; font-weight: bold; font-size: 19px;">{note}</span></p>
             </div>
         </div>
         """, unsafe_allow_html=True)

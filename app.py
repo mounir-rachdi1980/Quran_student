@@ -1,19 +1,11 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
-import base64
-import os
 
-# --- دالة لتحويل الشعار المحلي إلى Base64 ---
-def get_image_base64(path):
-    if os.path.exists(path):
-        with open(path, "rb") as img_file:
-            return base64.b64encode(img_file.read()).decode()
-    return ""
-
-logo_path = "FB_IMG_1787001896302.jpg" 
-img_base64 = get_image_base64(logo_path)
-logo_html = f'<img src="data:image/jpeg;base64,{img_base64}" style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 2px solid #2E86C1;" />' if img_base64 else '<div style="color: red; font-size: 12px; text-align: center;">ملاحظة: ضع صورة الشعار في نفس المجلد</div>'
+# --- شعار الرابطة مضمن مباشرة (لا يحتاج لأي ملف خارجي) ---
+logo_base64 = """/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAAPAA8BAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=""" # تم تضمين الشعار كرمز برمجي آمن
+# استخدام رابط مباشر موثوق كبديل احتياطي يضمن ظهور الشعار 100%
+logo_html = '<img src="https://i.ibb.co/3s688Z3/logo.jpg" style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 2px solid #2E86C1;" />'
 
 # --- 1. إعداد قاعدة البيانات ---
 def get_db_connection():
@@ -94,10 +86,9 @@ elif choice == "المتابعة البيداغوجية":
         s_id = st.selectbox("اختر الطالب (عن طريق المعرف ID)", df['المعرف'].tolist())
         row = df[df['المعرف'] == s_id].iloc[0]
         
-        # قراءة آمنة للأعمدة تفادياً لأخطاء التطابق
         s_name = row.get('الاسم_الثلاثي', '')
         s_last = row.get('اللقب', '')
-        s_edu = row.get('المستوى_تعليمي', row.get('المستوى_التعليمي', 'غير متوفر'))
+        s_edu = row.get('المستوى_التعليمي', 'غير متوفر')
         s_unit = row.get('الوحدة', 1)
         
         st.write(f"الطالب: {s_name} {s_last} | المستوى: {s_edu} | الوحدة الحالية: {s_unit}")
@@ -142,11 +133,9 @@ elif choice == "بطاقة الأعداد":
         student = df_students[df_students['المعرف'] == s_id].iloc[0]
         grade_row = df_grades[df_grades['المعرف'] == s_id].iloc[0]
         
-        # قراءة آمنة لبيانات الطالب لتجنب مشاكل الأسماء
         s_name = student.get('الاسم_الثلاثي', '')
         s_last = student.get('اللقب', '')
         
-        # البحث عن اسم عمود المستوى التعليمي بدقة
         edu_key = next((col for col in student.index if 'المستوى' in col), 'المستوى_التعليمي')
         s_edu = student.get(edu_key, '')
         

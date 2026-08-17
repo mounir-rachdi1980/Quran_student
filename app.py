@@ -12,6 +12,7 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS students 
                  (المعرف INTEGER PRIMARY KEY AUTOINCREMENT, الاسم_الثلاثي TEXT, اللقب TEXT, 
                   تاريخ_الولادة TEXT, بطاقة_التعريف TEXT, المهنة TEXT, المستوى_التعليمي TEXT, المرحلة TEXT, الوحدة INTEGER)''')
+    # تطوير جدول الدرجات ليحفظ تفاصيل المواد لكل وحدة أو المعدلات حسب الحاجة، سنحافظ على الجدول ونضيف تفاصيل العرض
     c.execute('''CREATE TABLE IF NOT EXISTS grades 
                  (المعرف INTEGER PRIMARY KEY, u1 REAL, u2 REAL, u3 REAL, u4 REAL)''')
     c.execute('''CREATE TABLE IF NOT EXISTS settings 
@@ -71,7 +72,7 @@ if choice == "تسجيل طالب جديد":
         st.success(f"✅ تم تسجيل الطالب بنجاح! (المعرف ID: {c.lastrowid})")
 
 elif choice == "المتابعة البيداغوجية":
-    st.subheader("📊 رصد الدرجات والارتقاء")
+    st.subheader("📊 رصد الدرجات والارتقاء (حفظ، رواية، دراية، حضور)")
     conn = get_db_connection()
     df = pd.read_sql_query("SELECT * FROM students", conn)
     conn.close()
@@ -79,19 +80,19 @@ elif choice == "المتابعة البيداغوجية":
     if not df.empty:
         s_id = st.selectbox("اختر الطالب (عن طريق المعرف ID)", df['المعرف'].tolist())
         row = df[df['المعرف'] == s_id].iloc[0]
-        st.write(f"الطالب: {row['الاسم_الثلاثي']} {row['اللقب']} | المستوى: {row['المستوى_التعليمي']} | الوحدة: {row['الوحدة']}")
+        st.write(f"الطالب: {row['الاسم_الثلاثي']} {row['اللقب']} | المستوى: {row['المستوى_التعليمي']} | الوحدة الحالية: {row['الوحدة']}")
         
         st.markdown("---")
         col1, col2 = st.columns(2)
-        hifz = col1.number_input("درجة الحفظ", 0.0, 20.0)
-        riwaya = col2.number_input("درجة الرواية", 0.0, 20.0)
-        diraya = col1.number_input("درجة الدراية", 0.0, 20.0)
-        hodoor = col2.number_input("درجة الحضور", 0.0, 20.0)
+        hifz = col1.number_input("درجة الحفظ", 0.0, 20.0, value=0.0)
+        riwaya = col2.number_input("درجة الرواية", 0.0, 20.0, value=0.0)
+        diraya = col1.number_input("درجة الدراية", 0.0, 20.0, value=0.0)
+        hodoor = col2.number_input("درجة الحضور", 0.0, 20.0, value=0.0)
         
         if st.button("تحديث الدرجات والارتقاء"):
             conn = get_db_connection()
             w = pd.read_sql_query("SELECT * FROM settings WHERE id=1", conn).iloc[0]
-            # حساب المعدل بناءً على الحفظ، الرواية، الدراية، والحضور
+            
             total_weights = w['w_hifz'] + w['w_riwaya'] + w['w_diraya'] + w['w_hodoor']
             avg = (hifz * w['w_hifz'] + riwaya * w['w_riwaya'] + diraya * w['w_diraya'] + hodoor * w['w_hodoor']) / total_weights
             
@@ -100,7 +101,7 @@ elif choice == "المتابعة البيداغوجية":
             
             if avg >= 10 and row['الوحدة'] < 4:
                 conn.execute("UPDATE students SET الوحدة = الوحدة + 1 WHERE المعرف = ?", (s_id,))
-                st.success(f"🎉 تم الارتقاء للوحدة الموالية! المعدل هو: {avg:.2f}")
+                st.success(f"🎉 تم الارتقاء للوحدة الموالية! المعدل المحصل عليه: {avg:.2f}")
             else:
                 st.info(f"📌 تم تسجيل المعدل بنجاح ({avg:.2f}).")
                 
@@ -108,10 +109,11 @@ elif choice == "المتابعة البيداغوجية":
             conn.close()
 
 elif choice == "بطاقة الأعداد":
-    st.subheader("📄 استخراج بطاقة أعداد طالب")
+    st.subheader("📄 استخراج بطاقة أعداد طالب تفصيلية")
     conn = get_db_connection()
     df_students = pd.read_sql_query("SELECT * FROM students", conn)
     df_grades = pd.read_sql_query("SELECT * FROM grades", conn)
+    df_settings = pd.read_sql_query("SELECT * FROM settings WHERE id=1", conn).iloc[0]
     conn.close()
     
     if not df_students.empty:
@@ -123,12 +125,36 @@ elif choice == "بطاقة الأعداد":
         st.markdown(f"""
         <div style="border: 2px solid #2E86C1; padding: 20px; border-radius: 10px; background-color: #f9f9f9; color: #000;">
             <h3 style="text-align: center; color: #2E86C1;">الرابطة الوطنية للقرآن الكريم - فرع المكناسي</h3>
-            <h4 style="text-align: center;">بطاقة أعداد الطالب</h4>
+            <h4 style="text-align: center;">بطاقة أعداد الطالب التفصيلية</h4>
             <hr>
             <p><b>الاسم الكامل:</b> {student['الاسم_الثلاثي']} {student['اللقب']}</p>
             <p><b>المستوى التعليمي:</b> {student['المستوى_التعليمي']} | <b>المرحلة:</b> {student['المرحلة']}</p>
             <p><b>الوحدة الحالية:</b> {student['الوحدة']}</p>
             <br>
+            <table style="width:100%; text-align: right; border-collapse: collapse;">
+                <tr>
+                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">مكونات التقييم الأساسية</th>
+                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">الضارب (المعامل)</th>
+                </tr>
+                <tr>
+                    <td style="padding: 8px;">الحفظ</td>
+                    <td style="padding: 8px;">{df_settings['w_hifz']}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px;">الرواية</td>
+                    <td style="padding: 8px;">{df_settings['w_riwaya']}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px;">الدراية</td>
+                    <td style="padding: 8px;">{df_settings['w_diraya']}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px;">الحضور</td>
+                    <td style="padding: 8px;">{df_settings['w_hodoor']}</td>
+                </tr>
+            </table>
+            <br>
+            <h4 style="color: #2E86C1; text-align: right;">معدلات الوحدات الدراسية:</h4>
             <table style="width:100%; text-align: right; border-collapse: collapse;">
                 <tr>
                     <th style="border-bottom: 1px solid #ddd; padding: 8px;">الوحدة</th>

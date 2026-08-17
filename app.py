@@ -97,7 +97,6 @@ elif choice == "المتابعة البيداغوجية":
             avg = (hifz * w['w_hifz'] + riwaya * w['w_riwaya'] + diraya * w['w_diraya'] + hodoor * w['w_hodoor']) / total_weights
             
             unit_col = f"u{row['الوحدة']}"
-            # حفظ الدرجات الحالية في الجدول أيضاً لاستخدامها في البطاقة
             conn.execute(f"UPDATE grades SET {unit_col} = ?, hifz_d = ?, riwaya_d = ?, diraya_d = ?, hodoor_d = ? WHERE المعرف = ?", 
                         (avg, hifz, riwaya, diraya, hodoor, s_id))
             
@@ -123,9 +122,22 @@ elif choice == "بطاقة الأعداد":
         student = df_students[df_students['المعرف'] == s_id].iloc[0]
         grade_row = df_grades[df_grades['المعرف'] == s_id].iloc[0]
         
-        # استخراج المعدل الخاص بالوحدة الحالية للطالب لعرضه في النتيجة
-        current_unit_col = f"u{student['الوحدة']}"
-        current_avg = grade_row[current_unit_col] if current_unit_col in grade_row else 0.0
+        # حساب المعدل بشكل دقيق بناءً على الدرجات المخزنة والضوارب الحالية
+        h_d = grade_row['hifz_d']
+        r_d = grade_row['riwaya_d']
+        d_d = grade_row['diraya_d']
+        hd_d = grade_row['hodoor_d']
+        
+        w_h = df_settings['w_hifz']
+        w_r = df_settings['w_riwaya']
+        w_d = df_settings['w_diraya']
+        w_hd = df_settings['w_hodoor']
+        
+        total_weights = w_h + w_r + w_d + w_hd
+        if total_weights > 0:
+            current_avg = (h_d * w_h + r_d * w_r + d_d * w_d + hd_d * w_hd) / total_weights
+        else:
+            current_avg = 0.0
         
         # تحديد النتيجة والقرار
         result_status = "ارتقاء" if current_avg >= 10 else "رسوب"
@@ -161,27 +173,27 @@ elif choice == "بطاقة الأعداد":
                 </tr>
                 <tr>
                     <td style="padding: 8px;">الحفظ</td>
-                    <td style="padding: 8px;">{grade_row['hifz_d']}</td>
-                    <td style="padding: 8px;">{df_settings['w_hifz']}</td>
+                    <td style="padding: 8px;">{h_d}</td>
+                    <td style="padding: 8px;">{w_h}</td>
                 </tr>
                 <tr>
                     <td style="padding: 8px;">الرواية</td>
-                    <td style="padding: 8px;">{grade_row['riwaya_d']}</td>
-                    <td style="padding: 8px;">{df_settings['w_riwaya']}</td>
+                    <td style="padding: 8px;">{r_d}</td>
+                    <td style="padding: 8px;">{w_r}</td>
                 </tr>
                 <tr>
                     <td style="padding: 8px;">الدراية</td>
-                    <td style="padding: 8px;">{grade_row['diraya_d']}</td>
-                    <td style="padding: 8px;">{df_settings['w_diraya']}</td>
+                    <td style="padding: 8px;">{d_d}</td>
+                    <td style="padding: 8px;">{w_d}</td>
                 </tr>
                 <tr>
                     <td style="padding: 8px;">الحضور</td>
-                    <td style="padding: 8px;">{grade_row['hodoor_d']}</td>
-                    <td style="padding: 8px;">{df_settings['w_hodoor']}</td>
+                    <td style="padding: 8px;">{hd_d}</td>
+                    <td style="padding: 8px;">{w_hd}</td>
                 </tr>
             </table>
             <br>
-            <div style="border-top: 2px dashed #2E86C1; padding-top: 15px; margin-top: 10px; text-align: center;">
+            <div style="text-align: center;">
                 <p style="font-size: 18px;"><b>المعدل العام للوحدة:</b> <span style="color: #2E86C1;">{current_avg:.2f} / 20</span></p>
                 <p style="font-size: 18px;"><b>النتيجة النهائية:</b> <span style="color: {result_color}; font-weight: bold;">{result_status}</span></p>
                 <p style="font-size: 18px;"><b>الملاحظة:</b> <span style="color: #8E44AD; font-weight: bold;">{note}</span></p>

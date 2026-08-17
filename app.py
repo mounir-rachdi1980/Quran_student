@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 
-# --- 1. إعداد قاعدة البيانات وتحديث الجداول تلقائياً ---
+# --- 1. إعداد قاعدة البيانات وتحديث الجداول والأعمدة تلقائياً ---
 def get_db_connection():
     return sqlite3.connect('quran_data.db')
 
@@ -10,18 +10,35 @@ def init_db():
     conn = get_db_connection()
     c = conn.cursor()
     
-    # إنشاء جدول الطلاب
+    # إنشاء جدول الطلاب إذا لم يكن موجوداً
     c.execute('''CREATE TABLE IF NOT EXISTS students 
                  (المعرف INTEGER PRIMARY KEY AUTOINCREMENT, الاسم_الثلاثي TEXT, اللقب TEXT, 
                   تاريخ_الولادة TEXT, بطاقة_التعريف TEXT, المهنة TEXT, المستوى_التعليمي TEXT, المرحلة TEXT, الوحدة INTEGER, رقم_الترسيم TEXT, المرسم_ب TEXT, المركز TEXT)''')
     
-    # إنشاء جدول الدرجات
+    # التحقق من الأعمدة الناقصة في جدول students وإضافتها تلقائياً إن لم تكن موجودة
+    cursor = c.execute("PRAGMA table_info(students)")
+    existing_student_columns = [column[1] for column in cursor.fetchall()]
+    
+    students_columns_to_add = {
+        'رقم_الترسيم': 'TEXT',
+        'المرسم_ب': 'TEXT',
+        'المركز': 'TEXT',
+        'المهنة': 'TEXT',
+        'المستوى_التعليمي': 'TEXT',
+        'بطاقة_التعريف': 'TEXT'
+    }
+    
+    for col, col_type in students_columns_to_add.items():
+        if col not in existing_student_columns:
+            c.execute(f"ALTER TABLE students ADD COLUMN {col} {col_type}")
+
+    # إنشاء جدول الدرجات إذا لم يكن موجوداً
     c.execute('''CREATE TABLE IF NOT EXISTS grades 
                  (المعرف INTEGER PRIMARY KEY, u1 REAL, u2 REAL, u3 REAL, u4 REAL, 
                   hifz_d REAL DEFAULT 0, riwaya_d REAL DEFAULT 0, diraya_d REAL DEFAULT 0, hodoor_d REAL DEFAULT 0,
                   diraya_kitabya REAL DEFAULT 0, mowadaba REAL DEFAULT 0, taqeem_mudarris REAL DEFAULT 0, diraya_shafowya REAL DEFAULT 0)''')
     
-    # إنشاء جدول الإعدادات
+    # إنشاء جدول الإعدادات إذا لم يكن موجوداً
     c.execute('''CREATE TABLE IF NOT EXISTS settings 
                  (id INTEGER PRIMARY KEY, w_hifz REAL, w_riwaya REAL, w_diraya REAL, w_hodoor REAL,
                   w_diraya_kitabya REAL DEFAULT 2.0, w_mowadaba REAL DEFAULT 1.0, w_taqeem_mudarris REAL DEFAULT 1.0, w_hifz_item REAL DEFAULT 1.0, w_diraya_shafowya REAL DEFAULT 1.0)''')
@@ -30,11 +47,11 @@ def init_db():
     if c.fetchone()[0] == 0:
         c.execute("INSERT INTO settings (id, w_hifz, w_riwaya, w_diraya, w_hodoor, w_diraya_kitabya, w_mowadaba, w_taqeem_mudarris, w_hifz_item, w_diraya_shafowya) VALUES (1, 3.0, 2.0, 2.0, 1.0, 2.0, 1.0, 1.0, 1.0, 1.0)")
     
-    # التحقق من الأعمدة الناقصة وإضافتها
+    # التحقق من الأعمدة الناقصة في جدول settings وإضافتها تلقائياً
     cursor = c.execute("PRAGMA table_info(settings)")
-    existing_columns = [column[1] for column in cursor.fetchall()]
+    existing_settings_columns = [column[1] for column in cursor.fetchall()]
     
-    columns_to_add = {
+    settings_columns_to_add = {
         'w_diraya_kitabya': 'REAL DEFAULT 2.0',
         'w_mowadaba': 'REAL DEFAULT 1.0',
         'w_taqeem_mudarris': 'REAL DEFAULT 1.0',
@@ -42,8 +59,8 @@ def init_db():
         'w_diraya_shafowya': 'REAL DEFAULT 1.0'
     }
     
-    for col, col_type in columns_to_add.items():
-        if col not in existing_columns:
+    for col, col_type in settings_columns_to_add.items():
+        if col not in existing_settings_columns:
             c.execute(f"ALTER TABLE settings ADD COLUMN {col} {col_type}")
 
     conn.commit()

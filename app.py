@@ -38,6 +38,25 @@ def init_db():
                   hifz_d REAL DEFAULT 0, riwaya_d REAL DEFAULT 0, diraya_d REAL DEFAULT 0, hodoor_d REAL DEFAULT 0,
                   diraya_kitabya REAL DEFAULT 0, mowadaba REAL DEFAULT 0, taqeem_mudarris REAL DEFAULT 0, diraya_shafowya REAL DEFAULT 0)''')
     
+    # التحقق من الأعمدة الناقصة في جدول grades وإضافتها تلقائياً
+    cursor = c.execute("PRAGMA table_info(grades)")
+    existing_grades_columns = [column[1] for column in cursor.fetchall()]
+    
+    grades_columns_to_add = {
+        'hifz_d': 'REAL DEFAULT 0',
+        'riwaya_d': 'REAL DEFAULT 0',
+        'diraya_d': 'REAL DEFAULT 0',
+        'hodoor_d': 'REAL DEFAULT 0',
+        'diraya_kitabya': 'REAL DEFAULT 0',
+        'mowadaba': 'REAL DEFAULT 0',
+        'taqeem_mudarris': 'REAL DEFAULT 0',
+        'diraya_shafowya': 'REAL DEFAULT 0'
+    }
+    
+    for col, col_type in grades_columns_to_add.items():
+        if col not in existing_grades_columns:
+            c.execute(f"ALTER TABLE grades ADD COLUMN {col} {col_type}")
+
     # إنشاء جدول الإعدادات إذا لم يكن موجوداً
     c.execute('''CREATE TABLE IF NOT EXISTS settings 
                  (id INTEGER PRIMARY KEY, w_hifz REAL, w_riwaya REAL, w_diraya REAL, w_hodoor REAL,
@@ -187,7 +206,7 @@ elif choice == "بطاقة الأعداد":
     if not df_students.empty:
         s_id = st.selectbox("اختر الطالب لاستخراج البطاقة", df_students['المعرف'].tolist())
         student = df_students[df_students['المعرف'] == s_id].iloc[0]
-        grade_row = df_grades[df_grades['المعرف'] == s_id].iloc[0]
+        grade_row = df_grades[df_grades['المعرف'] == s_id].iloc[0] if not df_grades[df_grades['المعرف'] == s_id].empty else {}
         
         s_name = student.get('الاسم_الثلاثي', '')
         s_last = student.get('اللقب', '')
@@ -195,11 +214,11 @@ elif choice == "بطاقة الأعداد":
         morsam_b = student.get('المرسم_ب', 'غير متوفر')
         markaz = student.get('المركز', 'غير متوفر')
         
-        dk = grade_row.get('diraya_kitabya', 0.0)
-        mw = grade_row.get('mowadaba', 0.0)
-        tm = grade_row.get('taqeem_mudarris', 0.0)
-        hf = grade_row.get('hifz_d', 0.0)
-        ds = grade_row.get('diraya_shafowya', 0.0)
+        dk = grade_row.get('diraya_kitabya', 0.0) if hasattr(grade_row, 'get') else 0.0
+        mw = grade_row.get('mowadaba', 0.0) if hasattr(grade_row, 'get') else 0.0
+        tm = grade_row.get('taqeem_mudarris', 0.0) if hasattr(grade_row, 'get') else 0.0
+        hf = grade_row.get('hifz_d', 0.0) if hasattr(grade_row, 'get') else 0.0
+        ds = grade_row.get('diraya_shafowya', 0.0) if hasattr(grade_row, 'get') else 0.0
         
         w_dk = df_settings['w_diraya_kitabya']
         w_mw = df_settings['w_mowadaba']

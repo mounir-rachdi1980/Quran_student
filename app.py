@@ -46,20 +46,25 @@ if choice == "تسجيل طالب جديد":
         cin = col2.text_input("رقم بطاقة التعريف")
         job = col1.text_input("المهنة")
         edu_level = col2.text_input("المستوى التعليمي")
+        
+        st.markdown("<hr>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color: #D35400;'>🎓 المرحلة الدراسية ووحدة الطالب</h3>", unsafe_allow_html=True)
+        
+        stage = st.selectbox("اختر المرحلة", [
+            "المرحلة الأولى: قالون (4 وحدات)", 
+            "المرحلة الثانية: نافع وحفص (3 وحدات)", 
+            "المرحلة الثالثة: سما وقراءات (4 وحدات)"
+        ])
+        
+        unit = st.number_input("اختر الوحدة الحالية", min_value=1, max_value=4, value=1, step=1)
+        
         submitted = st.form_submit_button("حفظ الطالب")
 
-    st.markdown("<div style='text-align: center; margin-top: 30px;'><h3 style='color: #D35400;'>🎓 المرحلة الدراسية للطالب</h3></div>", unsafe_allow_html=True)
-    stage = st.selectbox("اختر المرحلة", [
-        "المرحلة الأولى: قالون (4 وحدات)", 
-        "المرحلة الثانية: نافع وحفص (3 وحدات)", 
-        "المرحلة الثالثة: سما وقراءات (4 وحدات)"
-    ], label_visibility="collapsed")
-    
     if submitted:
         conn = get_db_connection()
         c = conn.cursor()
         c.execute("INSERT INTO students (الاسم_الثلاثي, اللقب, تاريخ_الولادة, بطاقة_التعريف, المهنة, المستوى_التعليمي, المرحلة, الوحدة) VALUES (?,?,?,?,?,?,?,?)", 
-                  (name, last_name, str(dob), cin, job, edu_level, stage, 1))
+                  (name, last_name, str(dob), cin, job, edu_level, stage, int(unit)))
         c.execute("INSERT INTO grades (المعرف, u1, u2, u3, u4) VALUES (?,0,0,0,0)", (c.lastrowid,))
         conn.commit()
         conn.close()
@@ -94,7 +99,7 @@ elif choice == "المتابعة البيداغوجية":
             
             if avg >= 10 and row['الوحدة'] < 4:
                 conn.execute("UPDATE students SET الوحدة = الوحدة + 1 WHERE المعرف = ?", (s_id,))
-                st.success(f"🎉 تم الارتقاء! المعدل هو: {avg:.2f}")
+                st.success(f"🎉 تم الارتقاء للوحدة الموالية! المعدل هو: {avg:.2f}")
             else:
                 st.info(f"📌 تم تسجيل المعدل بنجاح ({avg:.2f}).")
                 

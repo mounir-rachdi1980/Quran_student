@@ -12,7 +12,6 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS students 
                  (المعرف INTEGER PRIMARY KEY AUTOINCREMENT, الاسم_الثلاثي TEXT, اللقب TEXT, 
                   تاريخ_الولادة TEXT, بطاقة_التعريف TEXT, المهنة TEXT, المستوى_التعليمي TEXT, المرحلة TEXT, الوحدة INTEGER)''')
-    # تطوير جدول الدرجات ليحفظ تفاصيل المواد لكل وحدة أو المعدلات حسب الحاجة، سنحافظ على الجدول ونضيف تفاصيل العرض
     c.execute('''CREATE TABLE IF NOT EXISTS grades 
                  (المعرف INTEGER PRIMARY KEY, u1 REAL, u2 REAL, u3 REAL, u4 REAL)''')
     c.execute('''CREATE TABLE IF NOT EXISTS settings 
@@ -109,23 +108,21 @@ elif choice == "المتابعة البيداغوجية":
             conn.close()
 
 elif choice == "بطاقة الأعداد":
-    st.subheader("📄 استخراج بطاقة أعداد طالب تفصيلية")
+    st.subheader("📄 استخراج بطاقة أعداد طالب")
     conn = get_db_connection()
     df_students = pd.read_sql_query("SELECT * FROM students", conn)
-    df_grades = pd.read_sql_query("SELECT * FROM grades", conn)
     df_settings = pd.read_sql_query("SELECT * FROM settings WHERE id=1", conn).iloc[0]
     conn.close()
     
     if not df_students.empty:
         s_id = st.selectbox("اختر الطالب لاستخراج البطاقة", df_students['المعرف'].tolist())
         student = df_students[df_students['المعرف'] == s_id].iloc[0]
-        grade_row = df_grades[df_grades['المعرف'] == s_id].iloc[0]
         
         st.markdown("---")
         st.markdown(f"""
         <div style="border: 2px solid #2E86C1; padding: 20px; border-radius: 10px; background-color: #f9f9f9; color: #000;">
             <h3 style="text-align: center; color: #2E86C1;">الرابطة الوطنية للقرآن الكريم - فرع المكناسي</h3>
-            <h4 style="text-align: center;">بطاقة أعداد الطالب التفصيلية</h4>
+            <h4 style="text-align: center;">بطاقة أعداد الطالب</h4>
             <hr>
             <p><b>الاسم الكامل:</b> {student['الاسم_الثلاثي']} {student['اللقب']}</p>
             <p><b>المستوى التعليمي:</b> {student['المستوى_التعليمي']} | <b>المرحلة:</b> {student['المرحلة']}</p>
@@ -151,30 +148,6 @@ elif choice == "بطاقة الأعداد":
                 <tr>
                     <td style="padding: 8px;">الحضور</td>
                     <td style="padding: 8px;">{df_settings['w_hodoor']}</td>
-                </tr>
-            </table>
-            <br>
-            <h4 style="color: #2E86C1; text-align: right;">معدلات الوحدات الدراسية:</h4>
-            <table style="width:100%; text-align: right; border-collapse: collapse;">
-                <tr>
-                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">الوحدة</th>
-                    <th style="border-bottom: 1px solid #ddd; padding: 8px;">المعدل المسجل</th>
-                </tr>
-                <tr>
-                    <td style="padding: 8px;">الوحدة الأولى (u1)</td>
-                    <td style="padding: 8px;">{grade_row['u1']}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 8px;">الوحدة الثانية (u2)</td>
-                    <td style="padding: 8px;">{grade_row['u2']}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 8px;">الوحدة الثالثة (u3)</td>
-                    <td style="padding: 8px;">{grade_row['u3']}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 8px;">الوحدة الرابعة (u4)</td>
-                    <td style="padding: 8px;">{grade_row['u4']}</td>
                 </tr>
             </table>
         </div>

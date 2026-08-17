@@ -4,17 +4,16 @@ import sqlite3
 import base64
 import os
 
-# --- دالة لتحويل الشعار المحلي إلى Base64 لضمان ظهوره ---
+# --- دالة لتحويل الشعار المحلي إلى Base64 ---
 def get_image_base64(path):
     if os.path.exists(path):
         with open(path, "rb") as img_file:
             return base64.b64encode(img_file.read()).decode()
     return ""
 
-# استبدل هذا الاسم باسم ملف الشعار الموجود لديك في المجلد
 logo_path = "FB_IMG_1787001896302.jpg" 
 img_base64 = get_image_base64(logo_path)
-logo_html = f'<img src="data:image/jpeg;base64,{img_base64}" style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 2px solid #2E86C1;" />' if img_base64 else '<div style="color: red; font-size: 12px;">ملاحظة: ضع صورة الشعار في نفس المجلد</div>'
+logo_html = f'<img src="data:image/jpeg;base64,{img_base64}" style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 2px solid #2E86C1;" />' if img_base64 else '<div style="color: red; font-size: 12px; text-align: center;">ملاحظة: ضع صورة الشعار في نفس المجلد</div>'
 
 # --- 1. إعداد قاعدة البيانات ---
 def get_db_connection():
@@ -94,7 +93,14 @@ elif choice == "المتابعة البيداغوجية":
     if not df.empty:
         s_id = st.selectbox("اختر الطالب (عن طريق المعرف ID)", df['المعرف'].tolist())
         row = df[df['المعرف'] == s_id].iloc[0]
-        st.write(f"الطالب: {row['الاسم_الثلاثي']} {row['اللقب']} | المستوى: {row['المستوى_التعليمي']} | الوحدة الحالية: {row['الوحدة']}")
+        
+        # قراءة آمنة للأعمدة تفادياً لأخطاء التطابق
+        s_name = row.get('الاسم_الثلاثي', '')
+        s_last = row.get('اللقب', '')
+        s_edu = row.get('المستوى_تعليمي', row.get('المستوى_التعليمي', 'غير متوفر'))
+        s_unit = row.get('الوحدة', 1)
+        
+        st.write(f"الطالب: {s_name} {s_last} | المستوى: {s_edu} | الوحدة الحالية: {s_unit}")
         
         st.markdown("---")
         col1, col2 = st.columns(2)
@@ -110,11 +116,11 @@ elif choice == "المتابعة البيداغوجية":
             total_weights = w['w_hifz'] + w['w_riwaya'] + w['w_diraya'] + w['w_hodoor']
             avg = (hifz * w['w_hifz'] + riwaya * w['w_riwaya'] + diraya * w['w_diraya'] + hodoor * w['w_hodoor']) / total_weights
             
-            unit_col = f"u{row['الوحدة']}"
+            unit_col = f"u{s_unit}"
             conn.execute(f"UPDATE grades SET {unit_col} = ?, hifz_d = ?, riwaya_d = ?, diraya_d = ?, hodoor_d = ? WHERE المعرف = ?", 
                         (avg, hifz, riwaya, diraya, hodoor, s_id))
             
-            if avg >= 10 and row['الوحدة'] < 4:
+            if avg >= 10 and s_unit < 4:
                 conn.execute("UPDATE students SET الوحدة = الوحدة + 1 WHERE المعرف = ?", (s_id,))
                 st.success(f"🎉 تم الارتقاء للوحدة الموالية! المعدل المحصل عليه: {avg:.2f}")
             else:
@@ -136,10 +142,23 @@ elif choice == "بطاقة الأعداد":
         student = df_students[df_students['المعرف'] == s_id].iloc[0]
         grade_row = df_grades[df_grades['المعرف'] == s_id].iloc[0]
         
-        h_d = grade_row['hifz_d']
-        r_d = grade_row['riwaya_d']
-        d_d = grade_row['diraya_d']
-        hd_d = grade_row['hodoor_d']
+        # قراءة آمنة لبيانات الطالب لتجنب مشاكل الأسماء
+        s_name = student.get('الاسم_الثلاثي', '')
+        s_last = student.get('اللقب', '')
+        
+        # البحث عن اسم عمود المستوى التعليمي بدقة
+        edu_key = next((col for col in student.index if 'المستوى' in col), 'المستوى_التعليمي')
+        s_edu = student.get(edu_key, '')
+        
+        stage_key = next((col for col in student.index if 'المرحلة' in col), 'المرحلة')
+        s_stage = student.get(stage_key, '')
+        
+        s_unit = student.get('الوحدة', 1)
+        
+        h_d = grade_row.get('hifz_d', 0.0)
+        r_d = grade_row.get('riwaya_d', 0.0)
+        d_d = grade_row.get('diraya_d', 0.0)
+        hd_d = grade_row.get('hodoor_d', 0.0)
         
         w_h = df_settings['w_hifz']
         w_r = df_settings['w_riwaya']
@@ -176,9 +195,9 @@ elif choice == "بطاقة الأعداد":
             </div>
             <hr style="border: 0.5px solid #ccc; margin: 15px 0;">
             <div style="font-size: 16px; line-height: 1.8; direction: rtl; text-align: right;">
-                <p><b>الاسم الكامل:</b> <span style="font-weight: bold; color: #111;">{student['الاسم_الثلاثي']} {student['اللقب']}</span></p>
-                <p><b>المستوى التعليمي:</b> {student['المستوى_التعليمي']} &nbsp;|&nbsp; <b>المرحلة:</b> {student[' المرحلة'] if 'المرحلة' in student else student['المرحلة']}</p>
-                <p><b>الوحدة الحالية:</b> {student['الوحدة']}</p>
+                <p><b>الاسم الكامل:</b> <span style="font-weight: bold; color: #111;">{s_name} {s_last}</span></p>
+                <p><b>المستوى التعليمي:</b> {s_edu} &nbsp;|&nbsp; <b>المرحلة:</b> {s_stage}</p>
+                <p><b>الوحدة الحالية:</b> {s_unit}</p>
             </div>
             <br>
             <table style="width:100%; text-align: right; border-collapse: collapse; font-size: 15px;">

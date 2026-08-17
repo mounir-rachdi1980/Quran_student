@@ -2,9 +2,7 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 
-# --- شعار الرابطة مضمن مباشرة (لا يحتاج لأي ملف خارجي) ---
-logo_base64 = """/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAAPAA8BAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=""" # تم تضمين الشعار كرمز برمجي آمن
-# استخدام رابط مباشر موثوق كبديل احتياطي يضمن ظهور الشعار 100%
+# --- شعار الرابطة (رابط مباشر موثوق يظهر على السحابة) ---
 logo_html = '<img src="https://i.ibb.co/3s688Z3/logo.jpg" style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 2px solid #2E86C1;" />'
 
 # --- 1. إعداد قاعدة البيانات ---

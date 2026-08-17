@@ -1,6 +1,20 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
+import base64
+import os
+
+# --- دالة لتحويل الشعار المحلي إلى Base64 لضمان ظهوره ---
+def get_image_base64(path):
+    if os.path.exists(path):
+        with open(path, "rb") as img_file:
+            return base64.b64encode(img_file.read()).decode()
+    return ""
+
+# استبدل هذا الاسم باسم ملف الشعار الموجود لديك في المجلد
+logo_path = "FB_IMG_1787001896302.jpg" 
+img_base64 = get_image_base64(logo_path)
+logo_html = f'<img src="data:image/jpeg;base64,{img_base64}" style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 2px solid #2E86C1;" />' if img_base64 else '<div style="color: red; font-size: 12px;">ملاحظة: ضع صورة الشعار في نفس المجلد</div>'
 
 # --- 1. إعداد قاعدة البيانات ---
 def get_db_connection():
@@ -156,14 +170,14 @@ elif choice == "بطاقة الأعداد":
         st.markdown(f"""
         <div style="border: 2px solid #2E86C1; padding: 25px; border-radius: 12px; background-color: #ffffff; color: #000; font-family: Tahoma, sans-serif;">
             <div style="text-align: center;">
-                <img src="https://i.ibb.co/3s688Z3/logo.jpg" alt="شعار الفرع" style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 2px solid #2E86C1;">
+                {logo_html}
                 <h3 style="color: #2E86C1; font-size: 22px; font-weight: bold; margin-bottom: 5px;">الرابطة الوطنية للقرآن الكريم - فرع المكناسي</h3>
                 <h4 style="color: #555; font-size: 18px; font-weight: bold; margin-top: 0;">بطاقة أعداد الطالب</h4>
             </div>
             <hr style="border: 0.5px solid #ccc; margin: 15px 0;">
             <div style="font-size: 16px; line-height: 1.8; direction: rtl; text-align: right;">
                 <p><b>الاسم الكامل:</b> <span style="font-weight: bold; color: #111;">{student['الاسم_الثلاثي']} {student['اللقب']}</span></p>
-                <p><b>المستوى التعليمي:</b> {student['المستوى_التعليمي']} &nbsp;|&nbsp; <b>المرحلة:</b> {student['المرحلة']}</p>
+                <p><b>المستوى التعليمي:</b> {student['المستوى_التعليمي']} &nbsp;|&nbsp; <b>المرحلة:</b> {student[' المرحلة'] if 'المرحلة' in student else student['المرحلة']}</p>
                 <p><b>الوحدة الحالية:</b> {student['الوحدة']}</p>
             </div>
             <br>
